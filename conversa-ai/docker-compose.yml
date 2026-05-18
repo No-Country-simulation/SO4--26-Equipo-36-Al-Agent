@@ -1,0 +1,66 @@
+services:
+  # Servicio de la Aplicación FastAPI
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: conversa-ai-app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    networks:
+      - conversa-network
+    volumes:
+      - .:/code
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Base de Datos PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: conversa-ai-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-conversa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-conversa_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-conversa_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-conversa_user} -d ${POSTGRES_DB:-conversa_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - conversa-network
+
+  # ChromaDB Server (Vector Store para RAG)
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: conversa-ai-chromadb
+    ports:
+      - "8100:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - conversa-network
+
+volumes:
+  postgres_data:
+    driver: local
+  chroma_data:
+    driver: local
+
+networks:
+  conversa-network:
+    driver: bridge
