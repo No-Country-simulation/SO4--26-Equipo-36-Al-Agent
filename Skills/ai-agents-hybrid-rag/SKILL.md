@@ -126,10 +126,13 @@ Para garantizar un sistema de inferencia sólido, predecible y capaz de escalar 
 * **Lo que recordaste:** Un router para detectar qué quiere el usuario.
 * **El detalle técnico:** Es el primer nodo de tu grafo. Debe decidir de forma determinista si la pregunta se resuelve leyendo un documento estático (RAG) o si requiere ejecutar una herramienta (*Tool*) que consulte tablas operativas mediante SQL. Esto evita colisiones y falsos positivos.
 
-**5. Separación de Vocabulario y Lógica (Abstracción):**
+**5. Step-up Auth (Autenticación de Doble Factor por Canal):**
+* **La práctica:** Las interfaces de mensajería (WhatsApp/Telegram) tienen "Soft Auth" nativo por número telefónico. Para prevenir clonación de sesión o robo de dispositivo, si el router de intenciones detecta un pedido de información transaccional sensible, el flujo debe desviarse a un **Nodo de Autenticación** asíncrono que valide la identidad real enviando un OTP (One-Time Password) por correo, antes de permitir la lectura relacional de datos.
+
+**6. Separación de Vocabulario y Lógica (Abstracción):**
 * **La práctica:** Nunca hardcodear las instrucciones (*prompts*) dentro de la lógica de ejecución del código. Utilizar `PromptTemplates` almacenados en un repositorio central o gestionados desde la nube. Esto permite iterar y mejorar la comunicación del modelo sin tener que recompilar la aplicación.
 
-**6. Modelado de Ciclos y Manejo de Estado (StateGraph):**
+**7. Modelado de Ciclos y Manejo de Estado (StateGraph):**
 * **La práctica:** Abandonar las cadenas de texto lineales. Al utilizar LangGraph, la conversación debe circular como un objeto de Estado inmutable. Si el nodo de recuperación no encuentra información relevante, una **Arista Condicional** debe evaluar la situación y permitir que el sistema retroceda, reformule la pregunta de búsqueda y vuelva a intentar, en lugar de rendirse o alucinar de inmediato.
 
 #### 9.3. Capa de Control y Observabilidad (LangSmith y Defensas)

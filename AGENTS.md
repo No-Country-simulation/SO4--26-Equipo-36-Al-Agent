@@ -29,12 +29,13 @@ The system is built as a **Modular Monolith** using FastAPI. You must enforce st
 
 ## 3. Database Rules (PostgreSQL & ChromaDB)
 
-We use a single PostgreSQL instance logically separated into three strict schemas. **Never mix their operational purposes.**
+We use a single PostgreSQL instance logically separated into four strict schemas. **Never mix their operational purposes.**
 
 1. **`agent_core` (OLTP):** Optimized for fast, transactional read/writes by the Agent.
 2. **`fintech_mock`:** Isolated sandbox for simulating bank accounts, cards, and balances. Read-only for the Agent's tools.
 3. **`analytics_warehouse` (OLAP):** A Star-Schema optimized for Streamlit analytics. 
    * **CRITICAL RULE:** Do NOT perform JOINs between operational tables (`agent_core`) and analytical tables (`analytics_warehouse`) to filter data. Streamlit filters must strictly use the bridge tables (e.g., `fact_tag_assignments` linked to `dim_tags`).
+4. **`internal_ops` (RBAC & Security):** Dedicated schema for internal identity management. It handles JWT sessions, users, roles, and granular permissions for the Streamlit Dashboard operators (Analysts, Support, Product).
 
 **Database Migrations (Alembic):** The multi-schema PostgreSQL architecture is complex. Managing schema changes manually is strictly prohibited. You must use Alembic for database version control and migration management.
 
@@ -52,6 +53,7 @@ The conversational logic lives in `app/modules/agent/` and relies on LangChain, 
 * **StateGraph Paradigm:** Do NOT use linear LangChain `Chains`. Build cyclical `StateGraph` workflows where the conversation is an immutable state dictionary.
 * **Nodes & Routing:**
   * **Supervisor Router:** Deterministically routes to SQL (transactional) or RAG (informational) tools.
+  * **Step-up Auth Node:** For sensitive financial intents (e.g., checking balances in `fintech_mock`), the graph MUST route to an authentication node that triggers an asynchronous One-Time Password (OTP) challenge via SMS/Email to verify identity before executing the tool.
   * **RAG Retrieval:** Implement *Structure-Aware Chunking* (`MarkdownHeaderTextSplitter`) and *Question-to-Question (Q2Q)* matching. Combine dense vector search with lexical keyword matching (Hybrid) + Reranking.
   * **Gatekeeper Node:** Before returning the final response, the graph must pass through a validation node to check for hallucinations. If it hallucinates, the graph must route back for regeneration.
   * **Memory Management (`UpdateMemoryNode`):** Long-term episodic memory should not grow infinitely. Use a dedicated background node that performs Fact Extraction and Semantic Updates (Upsert) to ChromaDB based on entity IDs. Avoid naive FIFO or token-heavy summarization.

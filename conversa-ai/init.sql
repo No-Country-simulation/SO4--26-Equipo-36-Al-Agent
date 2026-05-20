@@ -4,6 +4,60 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE SCHEMA IF NOT EXISTS agent_core;
 CREATE SCHEMA IF NOT EXISTS fintech_mock;
 CREATE SCHEMA IF NOT EXISTS analytics_warehouse;
+CREATE SCHEMA IF NOT EXISTS internal_ops;
+
+-- 1. Esquema de Operaciones e infraestructura interna (internal_ops)
+
+-- Tabla de permisos atómicos 
+CREATE TABLE internal_ops.permissions (
+    permission_id SERIAL PRIMARY KEY,
+    codename VARCHAR(100) NOT NULL UNIQUE, -- Formato 'modulo:accion' (ej: 'pipeline:execute')
+    name VARCHAR(150) NOT NULL,            -- Nombre legible (ej: 'Gatillar Ingesta Mensual')
+    category VARCHAR(50) NOT NULL          -- Agrupador (ej: 'Analítica', 'Seguridad')
+);
+
+-- Tabla de roles del sistema
+CREATE TABLE internal_ops.roles (
+    role_id SERIAL PRIMARY KEY,
+    role_name VARCHAR(50) NOT NULL UNIQUE,  -- 'Data Analyst', 'Support Lead', etc.
+    description TEXT
+);
+
+-- Tabla puente: Relación Muchos a Muchos entre Roles y Permisos
+CREATE TABLE internal_ops.role_permissions (
+    role_id INTEGER REFERENCES internal_ops.roles(role_id) ON DELETE CASCADE,
+    permission_id INTEGER REFERENCES internal_ops.permissions(permission_id) ON DELETE CASCADE,
+    PRIMARY KEY (role_id, permission_id)
+);
+
+-- Tabla de usuarios internos (Empleados)
+CREATE TABLE internal_ops.users (
+    internal_user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role_id INTEGER NOT NULL REFERENCES internal_ops.roles(role_id),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP WITH TIME ZONE
+);
+
+-- Gestión de sesiones y lista negra de JWT
+CREATE TABLE internal_ops.sessions (
+    session_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    internal_user_id UUID NOT NULL REFERENCES internal_ops.users(internal_user_id) ON DELETE CASCADE,
+    jti VARCHAR(255) UNIQUE NOT NULL, 
+    is_revoked BOOLEAN DEFAULT FALSE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Índices de Optimización de Seguridad
+CREATE INDEX idx_internal_users_email ON internal_ops.users(email);
+CREATE INDEX idx_internal_permissions_code ON internal_ops.permissions(codename);
+CREATE INDEX idx_internal_sessions_jti ON internal_ops.sessions(jti);
+
 
 -- 1. Esquema transaccional del agente (agent_core)
 -- Catálogos del Agente
@@ -232,3 +286,40 @@ VALUES
 (2, 'bucle-detectado', 'ia'), 
 (3, 'abandono-neutro', 'ia'), 
 (4, 'reclamo-tarjeta', 'negocio');
+
+-- Semillas: internal_ops
+-- Inyección de permisos granulares
+INSERT INTO internal_ops.permissions (codename, name, category) VALUES 
+('pipeline:execute', 'Gatillar procesamiento por lotes del corpus mensual', 'Analítica'),
+('dashboard:view_metrics', 'Visualizar paneles generales en Streamlit', 'Analítica'),
+('dashboard:view_sensitive', 'Visualizar logs de chat completos e identificadores', 'Soporte'),
+('security:revoke_token', 'Revocar sesiones activas de usuarios internos', 'Seguridad'),
+('workflow:optimize', 'Modificar árboles y grafos de decisión del bot', 'Producto');
+
+-- Inyección de roles
+INSERT INTO internal_ops.roles (role_name, description) VALUES 
+('Data Analyst', 'Responsable de la ejecución del pipeline y salud del warehouse'),
+('Support Lead', 'Auditor de calidad y supervisor de alertas de frustración'),
+('Product Manager', 'Estratega de flujos conversacionales y sprints'),
+('System Admin', 'Superusuario con acceso perimetral total');
+
+-- Mapeo de permisos a roles (tabla puente)
+-- Data Analyst: Ejecuta pipeline y ve métricas
+INSERT INTO internal_ops.role_permissions (role_id, permission_id) 
+SELECT r.role_id, p.permission_id FROM internal_ops.roles r, internal_ops.permissions p
+WHERE r.role_name = 'Data Analyst' AND p.codename IN ('pipeline:execute', 'dashboard:view_metrics');
+
+-- Support Lead: Ve métricas y ve datos sensibles de chats para auditar
+INSERT INTO internal_ops.role_permissions (role_id, permission_id) 
+SELECT r.role_id, p.permission_id FROM internal_ops.roles r, internal_ops.permissions p
+WHERE r.role_name = 'Support Lead' AND p.codename IN ('dashboard:view_metrics', 'dashboard:view_sensitive');
+
+-- Product Manager: Ve métricas y optimiza workflows
+INSERT INTO internal_ops.role_permissions (role_id, permission_id) 
+SELECT r.role_id, p.permission_id FROM internal_ops.roles r, internal_ops.permissions p
+WHERE r.role_name = 'Product Manager' AND p.codename IN ('dashboard:view_metrics', 'workflow:optimize');
+
+-- System Admin: Todo
+INSERT INTO internal_ops.role_permissions (role_id, permission_id) 
+SELECT (SELECT role_id FROM internal_ops.roles WHERE role_name = 'System Admin'), permission_id 
+FROM internal_ops.permissions;
