@@ -31,9 +31,9 @@ El skill de **Arquitectura RAG Agéntica** se enfoca en la creación de solucion
 
 Dependiendo del contexto de la **inferencia del Agente IA**, se deben integrar los siguientes mecanismos para garantizar robustez:
 
-* **Flujo de Control:** Aristas condicionales (*Conditional Edges*) para evaluar la calidad del contexto antes de generar una respuesta (RAG con fallback). Lógica de reintento (*Retry Logic*) ante fallos de conexión con la API del LLM.
+* **Flujo de Control y Fallbacks Circulares:** Aristas condicionales (*Conditional Edges*) para evaluar la calidad del contexto antes de generar una respuesta. Es obligatorio implementar un **Servicio LLM con Fallback Circular**: Si el modelo principal (ej. Groq) sufre un timeout o caída, el sistema debe cambiar automáticamente a un LLM de respaldo (ej. Hugging Face) para garantizar el SLA y nunca dejar al usuario "en visto". Lógica de reintento (*Retry Logic*) estricta.
 * **Persistencia y Fallos:** Puntos de control (*Checkpointers*) en el grafo para pausar la ejecución (*Human-in-the-Loop*) o recuperar sesiones ante caídas del servidor.
-* **Trazabilidad:** Trazas estructuradas nativas (*Traces*) en LangSmith para auditar el árbol de decisión, consumo de tokens y latencia por nodo.
+* **Trazabilidad y Logging Estructurado:** Trazas estructuradas nativas (*Traces*) en LangSmith para auditar el árbol de decisión. Integración de logging estructurado (JSON) inyectando siempre el `session_id` y `user_id` para depurar fallos en alta concurrencia.
 * **Métricas de Éxito:** Definición clara de OKRs analíticos (Reducción de alucinaciones < 3%) y KPIs técnicos (Latencia de recuperación < 500ms, Precisión del Reranker).
 
 ---
@@ -139,6 +139,17 @@ Para garantizar un sistema de inferencia sólido, predecible y capaz de escalar 
 
 **8. Trazabilidad y Pruebas Cuantitativas (Evaluation Datasets):**
 * **La práctica:** Tratar los fallos de IA (alucinaciones, evasiones) como bugs de software. Utilizar LangSmith para registrar la traza completa (*trace*) de cada ejecución. Además, establecer un conjunto de pruebas (*datasets* de validación con preguntas difíciles) para medir matemáticamente la precisión, latencia y consumo de tokens cada vez que se modifique un prompt o la lógica de *chunking*.
+
+#### 9.4. Memoria Episódica en ChromaDB (Privacidad y Aislamiento Multi-Tenant)
+
+**9. Colecciones Vectoriales Separadas:**
+* **La práctica:** No mezclar manuales técnicos con recuerdos de usuarios. En ChromaDB, instanciar dos colecciones aisladas: `nexopay_knowledge_base` (estática, global y de solo lectura) y `user_long_term_memory` (dinámica y conversacional). Esto evita filtraciones de privacidad y alucinaciones cruzadas.
+
+**10. Búsqueda Condicionada por Metadatos:**
+* **La práctica:** Al insertar recuerdos episódicos (ej. *"Prefiere fondos de liquidez en lugar de plazos fijos"*), se debe inyectar un diccionario de metadatos con el `user_id`. Al momento de consultar, el sistema fuerza un filtrado estricto: *"Buscar este vector, PERO SÓLO donde el user_id coincida"*. 
+
+**11. Estrategia de Actualización Semántica (Upsert) y Extracción de Hechos:**
+* **La práctica:** Para evitar que la colección de memoria se vuelva un basurero inmanejable de recuerdos contradictorios con el tiempo, se implementa un nodo asíncrono (`UpdateMemoryNode`) al final del grafo. En lugar de una sumarización ciega y costosa, este nodo realiza **Extracción de Entidades** atómicas. Si el usuario cambia de preferencia, el sistema realiza una **búsqueda de similitud previa** y aplica una **Actualización Semántica (Upsert)**, pisando el vector viejo con el dato nuevo. Esto mantiene el perfil vivo, coherente y optimizado en tokens.
 
 ---
 

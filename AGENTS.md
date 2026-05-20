@@ -36,7 +36,12 @@ We use a single PostgreSQL instance logically separated into three strict schema
 3. **`analytics_warehouse` (OLAP):** A Star-Schema optimized for Streamlit analytics. 
    * **CRITICAL RULE:** Do NOT perform JOINs between operational tables (`agent_core`) and analytical tables (`analytics_warehouse`) to filter data. Streamlit filters must strictly use the bridge tables (e.g., `fact_tag_assignments` linked to `dim_tags`).
 
-**Vector Storage:** RAG embeddings must be queried against a dedicated **ChromaDB Server** container via HTTP client. **Do NOT use local embedded Chroma files** to avoid disk locks under high concurrency.
+**Database Migrations (Alembic):** The multi-schema PostgreSQL architecture is complex. Managing schema changes manually is strictly prohibited. You must use Alembic for database version control and migration management.
+
+**Vector Storage & Episodic Memory (ChromaDB):** RAG embeddings must be queried against a dedicated **ChromaDB Server** container via HTTP client. **Do NOT use local embedded Chroma files**.
+To ensure the bot acts intelligently without hallucinating user facts with static policies, ChromaDB MUST use isolated collections and strict metadata filtering:
+* **`nexopay_knowledge_base` (Collection A):** Static, global, read-only documentation for the agent.
+* **`user_long_term_memory` (Collection B):** Highly dynamic episodic memory. All embeddings stored here MUST inject a metadata dictionary (e.g., `{"user_id": "usr_123"}`) to ensure the agent performs strictly conditioned searches and respects multi-tenant privacy.
 
 ---
 
@@ -49,6 +54,8 @@ The conversational logic lives in `app/modules/agent/` and relies on LangChain, 
   * **Supervisor Router:** Deterministically routes to SQL (transactional) or RAG (informational) tools.
   * **RAG Retrieval:** Implement *Structure-Aware Chunking* (`MarkdownHeaderTextSplitter`) and *Question-to-Question (Q2Q)* matching. Combine dense vector search with lexical keyword matching (Hybrid) + Reranking.
   * **Gatekeeper Node:** Before returning the final response, the graph must pass through a validation node to check for hallucinations. If it hallucinates, the graph must route back for regeneration.
+  * **Memory Management (`UpdateMemoryNode`):** Long-term episodic memory should not grow infinitely. Use a dedicated background node that performs Fact Extraction and Semantic Updates (Upsert) to ChromaDB based on entity IDs. Avoid naive FIFO or token-heavy summarization.
+* **LLM Resilience & Circular Fallbacks:** Do not let API timeouts break the SLA. Implement a circular fallback mechanism. If the primary LLM (Groq) fails or times out, the system must automatically retry using a fallback LLM (e.g., Hugging Face) to ensure the user is never left hanging.
 * **Abstraction:** Never hardcode prompts into execution logic. Use decoupled `PromptTemplates`.
 * **Observability:** All LLM calls and tool executions must be traceable. Ensure LangSmith environment variables are respected. Tools (`@tool`) must have exhaustive, descriptive docstrings.
 
@@ -59,6 +66,8 @@ The conversational logic lives in `app/modules/agent/` and relies on LangChain, 
 When writing code or terminal commands, follow these workspace rules:
 
 * **Typing & Linting:** All Python code must be strictly typed (`typing` module) and PEP8 compliant.
+* **Structured Logging:** With 2M+ messages monthly, `print()` is unacceptable. Implement structured JSON logging that injects `session_id` and `user_id` into every log line to trace exact conversation failures.
+* **Rate Limiting:** Protect Webhook endpoints from DDoS or uncontrollable burst traffic using tools like SlowAPI.
 * **Error Handling:** Implement graceful fallbacks. If Groq API times out, the Agent must fail gracefully without crashing FastAPI.
 * **Testing:** 
   * If instructed to test, rely on `pytest`. 

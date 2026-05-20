@@ -94,7 +94,8 @@ El producto, denominado ConversaAI, actuará como un ecosistema dual:
 * **Pipeline de limpieza:** Normalización y remoción de datos sensibles (PII).    
 * **Clasificación de IA:** Identificación de intención y sentimiento mediante modelos preentrenados.    
 * **Detección de abandono:** Algoritmo para identificar puntos de fuga por frustración.    
-* **Visualización:** Dashboard con métricas de intenciones no resueltas.
+* **Visualización:** Dashboard con métricas de intenciones no resueltas.  
+* **Memoria episódica a largo plazo (Personalización):** El agente conversacional posee la capacidad de extraer, almacenar y recuperar hechos específicos y preferencias de cada cliente a lo largo del tiempo. Esto permite ofrecer una experiencia de atención hiperpersonalizada, donde el bot recuerda el contexto histórico del usuario en sesiones futuras sin depender de que este repita la información.
 
   3. ## **Características de los usuarios** {#características-de-los-usuarios}
 
@@ -118,7 +119,7 @@ El producto, denominado ConversaAI, actuará como un ecosistema dual:
   Suposiciones de Continuidad y Estabilidad del entorno:
 
 
-1. **Disponibilidad y SLA de APIs de Inferencia externa:** Se asume que los endpoints de Groq API (Inferencia conversacional) y Hugging Face Inference API (Modelo pysentimiento) mantendrán una disponibilidad (Uptime) mínima del 99% y que las cuotas de tráfico asignadas/contratadas permitirán absorber el procesamiento en ráfaga de los 2 millones de mensajes mensuales proyectados. Si cualquiera de estos proveedores discontinúa sus modelos base o altera drásticamente sus políticas de límites de peticiones (Rate Limits) en sus planes, se deberán modificar los requisitos de tiempo de respuesta (SLA de autopsia \< 30s) y reconfigurar la lógica de los prompts core.  
+1. **Disponibilidad y SLA de APIs de Inferencia Externa (Groq / Hugging Face):** Se asume que los proveedores mantendrán una alta disponibilidad. Sin embargo, para garantizar la tolerancia a fallos ante posibles caídas, timeouts o restricciones de cuota (Rate Limits) del proveedor principal, el sistema implementa un Servicio LLM con lógica de reintentos (Exponential Backoff) y Fallback Circular. Si el modelo principal falla, el sistema rotará automáticamente hacia un modelo o proveedor de respaldo (ej. Llama 3 local u otro proveedor en la nube) para asegurar que el agente nunca interrumpa el servicio al usuario final.  
 2. **Compatibilidad de la Plataforma de Persistencia:** Se asume que el entorno de despliegue final (servidor VPS o Base de Datos como Servicio Cloud \- DBaaS) permite la instalación nativa, ejecución y configuración de la extensión "uuid-ossp" en el motor PostgreSQL. Si el proveedor de infraestructura restringiera el uso de esta extensión, los requisitos de identidad y trazabilidad de la ERS deberían modificarse por completo para migrar a identificadores secuenciales convencionales (BIGINT), impactando la seguridad de los esquemas.  
      
    Dependencias críticas de sistemas de terceros:  
@@ -153,6 +154,11 @@ El producto, denominado ConversaAI, actuará como un ecosistema dual:
 | *RNF\#04* | *La interfaz de analista (Streamlit) debe ser accesible vía web con autenticación básica.* | *Seguridad* |
 | *RNF\#05* | *El sistema utilizará PostgreSQL organizado en tres esquemas lógicos estrictamente separados para mitigar el impacto de los 2 millones de mensajes mensuales: como agent\_core que Optimizado para transacciones rápidas (OLTP) con índices en claves operativas (user\_id, session\_id),  fintech\_mock que es Entorno aislado para la simulación de cuentas, tarjetas y movimientos bancarios, analytics\_warehouse que es un Modelo analítico en estrella (OLAP) optimizado para lecturas masivas desde Streamlit, con índices específicos en dimensiones conformadas y tablas puente (idx\_fact\_time, idx\_fact\_tag\_assignment\_tag). Los procesos de lectura analítica no deben bloquear bajo ningún concepto las tablas de escritura del agente.* | *Eficiencia* |
 | *RNF\#06* | *El almacenamiento y la búsqueda de vectores de conocimiento (RAG) se deben realizar mediante una instancia dedicada de ChromaDB Server, quedando estrictamente prohibido el modo de persistencia en archivo local embebido para evitar colisiones de concurrencia y bloqueos de disco en picos de alta demanda.* | *Eficiencia / Escalabilidad* |
+| *RNF\#07* | *El sistema de inferencia debe implementar Exponential Backoff para reintentos de conexión y un Fallback Circular de modelos para garantizar respuestas sin interrupción ante caídas del proveedor principal de IA.* | *Resiliencia* |
+| *RNF\#08* | *La evolución y el control de versiones de los tres esquemas lógicos de PostgreSQL (`agent_core`, `fintech_mock`, `analytics_warehouse`) deben gestionarse obligatoriamente de forma automatizada y trazable utilizando **Alembic** para las migraciones.* | *Mantenibilidad* |
+| *RNF\#09* | *El backend debe generar Logs Estructurados en formato JSON. Es obligatorio que cada línea de log inyecte el contexto de la ejecución (session\_id y user\_id) para permitir auditorías precisas sobre el volumen de 2 millones de mensajes.* | *Observabilidad* |
+| *RNF\#10* | *Las rutas expuestas de la API que reciben los Webhooks de WhatsApp y Telegram deben estar protegidas mediante políticas de Rate Limiting (SlowAPI) para mitigar riesgos de ataques de Denegación de Servicio (DDoS) o saturación por ráfagas incontroladas.* | *Seguridad* |
+| *RNF\#11* | *La memoria a largo plazo debe persistirse en una colección dedicada en ChromaDB (user\_long\_term\_memory), estrictamente separada de la base de conocimiento global. Para garantizar la privacidad y evitar la contaminación cruzada (fuga de memoria entre el Usuario A y el Usuario B), es obligatorio que toda inserción y búsqueda de memoria incluya un filtrado duro por metadatos utilizando el identificador único del cliente (user\_id).* | *Seguridad / Privacidad* |
 
    
 
@@ -189,13 +195,16 @@ El producto, denominado ConversaAI, actuará como un ecosistema dual:
 
       1. ### **Capa de Interfaces y Adaptadores (app/api/)** {#capa-de-interfaces-y-adaptadores-(app/api/)}
 
-      Es la puerta de entrada al sistema. Su función es recibir las peticiones externas (Webhooks de WhatsApp/Telegram) y transformarlas en objetos que el sistema pueda procesar. No contiene lógica de negocio, solo se encarga del protocolo de comunicación.
+      Es la puerta de entrada al sistema. Su función es recibir las peticiones externas (Webhooks de WhatsApp/Telegram) y transformarlas en objetos que el sistema pueda procesar. No contiene lógica de negocio, solo se encarga del protocolo de comunicación. **En esta capa se aplican las restricciones de seguridad perimetral, incluyendo el Rate Limiting (SlowAPI) para prevenir la saturación de los endpoints.**
 
       2. ### **Capa de Aplicación y Lógica Modular (app/modules/)** {#capa-de-aplicación-y-lógica-modular-(app/modules/)}
 
       Es el corazón del software. Acá se encuentran los servicios que ejecutan las tareas principales:
 
-* **Módulo Agent:** Orquesta la conversación usando LangGraph y Groq.  
+* **Módulo Agent:** Orquesta la conversación usando LangGraph y Groq. Además de resolver el enrutamiento híbrido (RAG vs. SQL), este módulo gestiona el ciclo de vida de la Memoria a Largo Plazo del usuario mediante un nodo asíncrono dedicado. Para evitar la saturación de datos y la contradicción de contextos, el módulo implementa una arquitectura de memoria avanzada basada en tres fases lógicas:  
+  * **Extracción de entidades (Fact Extraction):** Al finalizar cada interacción, un modelo evalúa la sesión en segundo plano y extrae de forma atómica únicamente los hechos nuevos y permanentes sobre el usuario (ej. preferencias de inversión, quejas recurrentes).  
+  * **Actualización semántica (UPSERT):** Antes de persistir un nuevo recuerdo en ChromaDB, el sistema busca similitudes previas bajo el mismo user\_id. Si detecta un hecho preexistente que colisiona o se actualiza, ejecuta una operación de sobreescritura (Upsert) pisando el vector antiguo con el nuevo, manteniendo la coherencia y evitando la acumulación de basura vectorial  
+  * **Decaimiento por Relevancia (Time-Weighted Decay):** Durante la fase de recuperación (Retrieval), el algoritmo de búsqueda pondera matemáticamente la distancia del vector junto con la fecha de extracción. Esto permite que la memoria mantenga un perfil vivo, priorizando las preferencias recientes sobre las antiguas sin recurrir a borrados destructivos arbitrarios.  
 * **Módulo Evaluador:** Orquesta el pipeline de datos asíncrono e independiente. Se encarga de la extracción del corpus conversacional del OLTP, la limpieza del texto, la inferencia remota (vía API de Hugging Face para el modelo pysentimiento), la resolución de la intención del usuario y la inyección consolidada de métricas en la tabla de hechos fact\_sessions\_evaluation y sus dimensiones asociadas (incluyendo la asignación de etiquetas en la tabla puente fact\_tag\_assignments).
 
   3. ### **Capa de Dominio y Datos Compartidos (app/common/)** {#capa-de-dominio-y-datos-compartidos-(app/common/)}
@@ -204,7 +213,7 @@ El producto, denominado ConversaAI, actuará como un ecosistema dual:
 
      4. ### **Capa de Infraestructura y Configuración (app/core/)** {#capa-de-infraestructura-y-configuración-(app/core/)}
 
-     Provee las herramientas necesarias para que el sistema funcione: conexiones asíncronas a PostgreSQL, **inicialización del cliente HTTP para la conexión con el servidor externo de ChromaDB**, configuración de variables de entorno (.env), y clientes de infraestructura para servicios como LangSmith o la API de Groq
+     Provee las herramientas necesarias para que el sistema funcione: conexiones asíncronas a PostgreSQL, inicialización del cliente HTTP para ChromaDB, configuración de variables de entorno (.env) y clientes de infraestructura para LangSmith o Groq. Adicionalmente, esta capa centraliza la configuración de los Logs Estructurados contextuales, la configuración del control de versiones de la base de datos (Alembic) y el Servicio LLM maestro encargado de la lógica de reintentos y Fallback.
 
      
 
