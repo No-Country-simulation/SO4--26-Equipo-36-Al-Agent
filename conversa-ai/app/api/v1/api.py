@@ -8,8 +8,11 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.api.v1.webhooks import router as webhooks_router
 
 router = APIRouter()
+
+router.include_router(webhooks_router)
 
 
 @router.get("/health", tags=["System"])
