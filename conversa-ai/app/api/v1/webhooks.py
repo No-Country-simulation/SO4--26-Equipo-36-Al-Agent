@@ -31,10 +31,12 @@ async def process_whatsapp_message(payload: Dict[str, Any]):
         sender_phone = message.get("from")
         message_id = message.get("id")
         
-        # Como no tenemos un session_id explícito desde WhatsApp en este MVP inicial,
-        # usaremos el número de teléfono como user_id y session_id por ahora.
-        user_id = f"wa_{sender_phone}"
-        session_id = f"sess_{sender_phone}"
+        # Obtener o crear User y Session en la base de datos (Persistencia OLTP)
+        from app.modules.agent.db_service import DBService
+        user_id, session_id = await DBService.get_or_create_user_and_session(external_id=sender_phone, channel_id=1)
+        
+        # Persistir el mensaje del usuario en DB
+        await DBService.save_message(session_id=session_id, role_id=1, content=message_text)
         
         # En el MVP, inicializamos el state manualmente con LangGraph
         state = {

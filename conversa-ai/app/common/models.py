@@ -427,3 +427,85 @@ class FactTagAssignment(Base):
     tag_id = Column(Integer,
                     ForeignKey("analytics_warehouse.dim_tags.tag_id", ondelete="CASCADE"),
                     primary_key=True)
+
+
+# 4. ESQUEMA: internal_ops (Seguridad y Operaciones Internas)
+class Permission(Base):
+    """Permisos granulares del sistema."""
+    __tablename__ = "permissions"
+    __table_args__ = (
+        Index("idx_internal_permissions_code", "codename"),
+        {"schema": "internal_ops"},
+    )
+
+    permission_id = Column(Integer, primary_key=True, autoincrement=True)
+    codename = Column(String(50), nullable=False, unique=True)
+    name = Column(String(100), nullable=False)
+    category = Column(String(50))
+
+
+class Role(Base):
+    """Roles de usuarios internos."""
+    __tablename__ = "roles"
+    __table_args__ = {"schema": "internal_ops"}
+
+    role_id = Column(Integer, primary_key=True, autoincrement=True)
+    role_name = Column(String(50), nullable=False, unique=True)
+    description = Column(String(200))
+
+    permissions = relationship(
+        "Permission",
+        secondary="internal_ops.role_permissions",
+        backref="roles"
+    )
+    users = relationship("InternalUser", back_populates="role")
+
+
+class RolePermission(Base):
+    """Tabla puente: Roles y Permisos."""
+    __tablename__ = "role_permissions"
+    __table_args__ = {"schema": "internal_ops"}
+
+    role_id = Column(Integer, ForeignKey("internal_ops.roles.role_id", ondelete="CASCADE"), primary_key=True)
+    permission_id = Column(Integer, ForeignKey("internal_ops.permissions.permission_id", ondelete="CASCADE"), primary_key=True)
+
+
+class InternalUser(Base):
+    """Usuarios del dashboard administrativo."""
+    __tablename__ = "users"
+    __table_args__ = (
+        Index("idx_internal_users_email", "email"),
+        {"schema": "internal_ops"},
+    )
+
+    internal_user_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=func.uuid_generate_v4())
+    role_id = Column(Integer, ForeignKey("internal_ops.roles.role_id"), nullable=False)
+    email = Column(String(255), nullable=False, unique=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(150), nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
+    last_login_at = Column(TIMESTAMP(timezone=True))
+
+    role = relationship("Role", back_populates="users")
+    sessions = relationship("InternalSession", back_populates="user", cascade="all, delete-orphan")
+
+
+class InternalSession(Base):
+    """Sesiones JWT activas/revocadas para usuarios internos."""
+    __tablename__ = "sessions"
+    __table_args__ = (
+        Index("idx_internal_sessions_jti", "jti"),
+        {"schema": "internal_ops"},
+    )
+
+    session_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, server_default=func.uuid_generate_v4())
+    internal_user_id = Column(UUID(as_uuid=True), ForeignKey("internal_ops.users.internal_user_id", ondelete="CASCADE"), nullable=False)
+    jti = Column(String(100), nullable=False, unique=True)
+    ip_address = Column(String(45))
+    user_agent = Column(Text)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
+    expires_at = Column(TIMESTAMP(timezone=True), nullable=False)
+    is_revoked = Column(Boolean, default=False)
+
+    user = relationship("InternalUser", back_populates="sessions")

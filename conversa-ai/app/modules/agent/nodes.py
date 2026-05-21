@@ -7,6 +7,7 @@ from app.core.chromadb_client import ChromaDBClient
 from app.core.logging import get_logger
 from app.modules.agent.schemas import AgentState
 from app.modules.agent.prompts import router_prompt, direct_response_prompt, gatekeeper_prompt, rag_response_prompt
+from app.modules.agent.db_service import DBService
 from rank_bm25 import BM25Okapi
 
 logger = get_logger(__name__)
@@ -46,6 +47,9 @@ async def direct_generate_node(state: AgentState) -> Dict[str, Any]:
     
     # Añadir la respuesta del asistente a los mensajes
     new_message = AIMessage(content=response_text)
+    
+    # Persistir en DB
+    await DBService.save_message(state["session_id"], role_id=2, content=response_text)
     
     return {"messages": [new_message], "current_node": "gatekeeper_node"}
 
@@ -101,6 +105,9 @@ async def rag_generate_node(state: AgentState) -> Dict[str, Any]:
     response_text = await llm_service.generate(formatted_messages)
     new_message = AIMessage(content=response_text)
     
+    # Persistir en DB
+    await DBService.save_message(state["session_id"], role_id=2, content=response_text)
+    
     return {"messages": [new_message], "current_node": "gatekeeper_node"}
 
 
@@ -134,6 +141,8 @@ async def sql_node(state: AgentState) -> Dict[str, Any]:
     # Agregamos el resultado como mensaje de sistema o IA
     new_message = AIMessage(content=result)
     
+    await DBService.save_message(state["session_id"], role_id=2, content=result)
+    
     return {"messages": [new_message], "current_node": "end"}
 
 
@@ -157,12 +166,15 @@ async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
         else:
             logger.warning(f"Fallo validación OTP para {user_id}: {msg}")
             new_message = AIMessage(content=msg)
+            await DBService.save_message(state["session_id"], role_id=2, content=msg)
             return {"messages": [new_message], "current_node": "end"}
             
     # Si no ingresó código, generamos uno nuevo
     OTPService.generate_and_send_otp(user_id, phone_number)
     msg = "Por seguridad, necesitamos verificar tu identidad. Te acabamos de enviar un código de 6 dígitos. Por favor, ingresalo aquí:"
     new_message = AIMessage(content=msg)
+    
+    await DBService.save_message(state["session_id"], role_id=2, content=msg)
     
     return {"messages": [new_message], "current_node": "end"}
 

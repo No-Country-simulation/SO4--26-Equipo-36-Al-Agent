@@ -23,7 +23,11 @@ async def submit_feedback(
         
     logger.info(f"Feedback recibido para mensaje {message_id}: {rating}")
     
-    # En la siguiente iteración se persistirá en la tabla agent_core.feedback
-    # Por ahora solo lo simulamos logueándolo
+    from app.modules.agent.db_service import DBService
+    try:
+        await DBService.save_feedback(message_id, rating)
+    except Exception as e:
+        logger.error(f"Error guardando feedback: {e}")
+        raise HTTPException(status_code=500, detail="Error al guardar el feedback")
     
     return {"status": "success", "message": "Feedback registrado correctamente"}
