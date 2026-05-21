@@ -3,9 +3,11 @@ from typing import Dict, Any
 from langchain_core.messages import HumanMessage, AIMessage
 
 from app.core.llm_service import LLMService
+from app.core.chromadb_client import ChromaDBClient
 from app.core.logging import get_logger
 from app.modules.agent.schemas import AgentState
-from app.modules.agent.prompts import router_prompt, direct_response_prompt, gatekeeper_prompt
+from app.modules.agent.prompts import router_prompt, direct_response_prompt, gatekeeper_prompt, rag_response_prompt
+from rank_bm25 import BM25Okapi
 
 logger = get_logger(__name__)
 
@@ -48,14 +50,62 @@ async def direct_generate_node(state: AgentState) -> Dict[str, Any]:
     return {"messages": [new_message], "current_node": "gatekeeper_node"}
 
 
-# Placeholders para los nodos que se implementarán en la Iteración 2 y 3
 async def rag_node(state: AgentState) -> Dict[str, Any]:
-    # Placeholder: En S1 simplemente enviamos a generación directa para simular
-    logger.info("rag_node no implementado aún, pasando a generación directa")
-    return {"current_node": "direct_generate_node"}
+    """
+    Recupera contexto de la base de conocimiento usando búsqueda híbrida (Densa + BM25).
+    """
+    logger.info("Ejecutando nodo RAG (Hybrid Search)")
+    user_message = state["messages"][-1].content
+    
+    # 1. Búsqueda Densa (ChromaDB)
+    client = ChromaDBClient()
+    collection = client.knowledge_base
+    if not collection:
+        logger.error("No se pudo conectar a ChromaDB")
+        return {"current_node": "direct_generate_node", "context": ""}
+        
+    results = collection.query(
+        query_texts=[user_message],
+        n_results=10 # Traemos top 10 para hacer reranking
+    )
+    
+    documents = results.get("documents", [[]])[0]
+    
+    if not documents:
+        return {"current_node": "rag_generate_node", "context": ""}
+        
+    # 2. Búsqueda Léxica (BM25) para Reranking
+    tokenized_corpus = [doc.split(" ") for doc in documents]
+    bm25 = BM25Okapi(tokenized_corpus)
+    tokenized_query = user_message.split(" ")
+    
+    # Obtener el top 3 de los 10 recuperados según BM25
+    top_n = 3
+    reranked_docs = bm25.get_top_n(tokenized_query, documents, n=top_n)
+    
+    context = "\n---\n".join(reranked_docs)
+    
+    return {"current_node": "rag_generate_node", "context": context}
+
+
+async def rag_generate_node(state: AgentState) -> Dict[str, Any]:
+    """Genera la respuesta usando el contexto del RAG."""
+    llm_service = LLMService(session_id=state["session_id"], user_id=state["user_id"])
+    
+    context = state.get("context", "")
+    formatted_messages = await rag_response_prompt.aformat_messages(
+        context=context,
+        messages=state["messages"]
+    )
+    
+    response_text = await llm_service.generate(formatted_messages)
+    new_message = AIMessage(content=response_text)
+    
+    return {"messages": [new_message], "current_node": "gatekeeper_node"}
+
 
 async def sql_node(state: AgentState) -> Dict[str, Any]:
-    # Placeholder: En S1 simplemente enviamos a generación directa para simular
+    # Placeholder: En S1/S2 simplemente enviamos a generación directa para simular
     logger.info("sql_node no implementado aún, pasando a generación directa")
     return {"current_node": "direct_generate_node"}
 
@@ -73,9 +123,11 @@ async def gatekeeper_node(state: AgentState) -> Dict[str, Any]:
     
     llm_service = LLMService(session_id=state["session_id"], user_id=state["user_id"])
     
+    context = state.get("context", "No context applied")
+    
     prompt = gatekeeper_prompt.format(
         user_message=user_message,
-        context="No context applied yet", # Placeholder para S1
+        context=context,
         generated_response=last_ai_message
     )
     
@@ -85,7 +137,12 @@ async def gatekeeper_node(state: AgentState) -> Dict[str, Any]:
     if "REJECT" in decision and state.get("retry_count", 0) < 3:
         logger.warning(f"Gatekeeper rechazó la respuesta. Reintentando ({state.get('retry_count', 0) + 1}/3)")
         # Quitar el mensaje rechazado
-        return {"messages": [], "retry_count": state.get("retry_count", 0) + 1, "current_node": "direct_generate_node"}
+        if state.get("context") is not None:
+            retry_node = "rag_generate_node"
+        else:
+            retry_node = "direct_generate_node"
+            
+        return {"messages": [], "retry_count": state.get("retry_count", 0) + 1, "current_node": retry_node}
         
     logger.info("Gatekeeper aprobó la respuesta.")
     return {"current_node": "end"}

@@ -7,6 +7,7 @@ from app.modules.agent.nodes import (
     supervisor_node,
     direct_generate_node,
     rag_node,
+    rag_generate_node,
     sql_node,
     gatekeeper_node
 )
@@ -18,6 +19,7 @@ workflow = StateGraph(AgentState)
 workflow.add_node("supervisor_node", supervisor_node)
 workflow.add_node("direct_generate_node", direct_generate_node)
 workflow.add_node("rag_node", rag_node)
+workflow.add_node("rag_generate_node", rag_generate_node)
 workflow.add_node("sql_node", sql_node)
 workflow.add_node("gatekeeper_node", gatekeeper_node)
 
@@ -39,8 +41,11 @@ workflow.add_conditional_edges(
     }
 )
 
-# Nodos intermedios fluyen al Gatekeeper (o a direct temporalmente en S1)
-workflow.add_edge("rag_node", "direct_generate_node")
+# Flujos de RAG
+workflow.add_edge("rag_node", "rag_generate_node")
+workflow.add_edge("rag_generate_node", "gatekeeper_node")
+
+# Otros flujos (SQL fluye a direct por ahora)
 workflow.add_edge("sql_node", "direct_generate_node")
 workflow.add_edge("direct_generate_node", "gatekeeper_node")
 
@@ -56,6 +61,7 @@ workflow.add_conditional_edges(
     route_from_gatekeeper,
     {
         "direct_generate_node": "direct_generate_node",
+        "rag_generate_node": "rag_generate_node",
         END: END
     }
 )

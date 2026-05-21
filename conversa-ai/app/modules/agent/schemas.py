@@ -16,3 +16,4 @@ class AgentState(TypedDict):
     current_node: str
     retry_count: int
     is_authenticated: bool
+    context: Optional[str]

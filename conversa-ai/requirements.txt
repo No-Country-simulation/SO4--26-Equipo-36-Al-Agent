@@ -12,3 +12,9 @@ pydantic-settings==2.9.1
 
 # HTTP Client (para Hugging Face API, webhooks, etc.)
 httpx==0.28.1
+
+# RAG & Vector Store
+chromadb==0.4.24
+sentence-transformers==2.5.1
+rank_bm25==0.2.2
+markdown==3.5.2

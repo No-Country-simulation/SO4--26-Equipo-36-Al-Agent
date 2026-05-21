@@ -21,6 +21,17 @@ direct_response_prompt = ChatPromptTemplate.from_messages([
     MessagesPlaceholder(variable_name="messages"),
 ])
 
+# Prompt para generación con RAG
+rag_response_prompt = ChatPromptTemplate.from_messages([
+    ("system", """Sos un asesor experto de NexoPay. Tu tarea es responder a la consulta del usuario utilizando ÚNICAMENTE la información provista en el Contexto Recuperado.
+Si la información en el contexto no es suficiente para responder con certeza, indicá amablemente que no tenés esa información, pero NO inventes datos.
+
+Contexto Recuperado:
+{context}
+"""),
+    MessagesPlaceholder(variable_name="messages"),
+])
+
 # Prompt Gatekeeper
 gatekeeper_prompt = PromptTemplate.from_template(
     """Sos el Auditor Gatekeeper de NexoPay.
