@@ -104,10 +104,67 @@ async def rag_generate_node(state: AgentState) -> Dict[str, Any]:
     return {"messages": [new_message], "current_node": "gatekeeper_node"}
 
 
+from app.modules.agent.tools import FINTECH_TOOLS
+from app.modules.agent.otp_service import OTPService
+
 async def sql_node(state: AgentState) -> Dict[str, Any]:
-    # Placeholder: En S1/S2 simplemente enviamos a generación directa para simular
-    logger.info("sql_node no implementado aún, pasando a generación directa")
-    return {"current_node": "direct_generate_node"}
+    """
+    Ejecuta herramientas transaccionales. Requiere autenticación OTP previa.
+    """
+    logger.info("Ejecutando nodo SQL (Tool Executor)")
+    
+    if not state.get("is_authenticated", False):
+        logger.warning("Usuario no autenticado intentando acceder a nodo SQL. Ruteando a step-up auth.")
+        return {"current_node": "step_up_auth_node"}
+        
+    user_message = state["messages"][-1].content.lower()
+    user_id = state["user_id"]
+    
+    # En un entorno real, el LLM clasificaría la herramienta a usar
+    # Acá usamos una heurística básica para el MVP
+    if "saldo" in user_message:
+        result = await FINTECH_TOOLS["get_account_balance"](user_id)
+    elif "movimiento" in user_message or "transacc" in user_message:
+        result = await FINTECH_TOOLS["get_recent_transactions"](user_id)
+    elif "tarjeta" in user_message:
+        result = await FINTECH_TOOLS["get_card_status"](user_id)
+    else:
+        result = "No entiendo qué operación querés realizar."
+        
+    # Agregamos el resultado como mensaje de sistema o IA
+    new_message = AIMessage(content=result)
+    
+    return {"messages": [new_message], "current_node": "end"}
+
+
+async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
+    """
+    Gestiona el desafío OTP.
+    Si el usuario ingresa un código, lo valida.
+    Si no, genera uno nuevo y pide que lo ingrese.
+    """
+    logger.info("Ejecutando nodo Step-Up Auth")
+    user_message = state["messages"][-1].content.strip()
+    user_id = state["user_id"]
+    phone_number = user_id.replace("wa_", "") # Extraer número simulado
+    
+    # Si el mensaje es numérico y de 6 dígitos, asumimos que es el código
+    if user_message.isdigit() and len(user_message) == 6:
+        is_valid, msg = OTPService.validate_otp(user_id, user_message)
+        if is_valid:
+            logger.info(f"OTP validado exitosamente para {user_id}")
+            return {"is_authenticated": True, "current_node": "sql_node"}
+        else:
+            logger.warning(f"Fallo validación OTP para {user_id}: {msg}")
+            new_message = AIMessage(content=msg)
+            return {"messages": [new_message], "current_node": "end"}
+            
+    # Si no ingresó código, generamos uno nuevo
+    OTPService.generate_and_send_otp(user_id, phone_number)
+    msg = "Por seguridad, necesitamos verificar tu identidad. Te acabamos de enviar un código de 6 dígitos. Por favor, ingresalo aquí:"
+    new_message = AIMessage(content=msg)
+    
+    return {"messages": [new_message], "current_node": "end"}
 
 
 async def gatekeeper_node(state: AgentState) -> Dict[str, Any]:
@@ -145,4 +202,14 @@ async def gatekeeper_node(state: AgentState) -> Dict[str, Any]:
         return {"messages": [], "retry_count": state.get("retry_count", 0) + 1, "current_node": retry_node}
         
     logger.info("Gatekeeper aprobó la respuesta.")
+    return {"current_node": "update_memory_node"}
+
+
+from app.modules.agent.memory_service import MemoryService
+
+async def update_memory_node(state: AgentState) -> Dict[str, Any]:
+    """
+    Nodo final que extrae y persiste la memoria episódica antes de terminar.
+    """
+    await MemoryService.extract_and_upsert_memory(state)
     return {"current_node": "end"}
