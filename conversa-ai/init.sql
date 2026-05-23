@@ -109,11 +109,21 @@ CREATE TABLE agent_core.sessions (
     CONSTRAINT ck_retries_non_negative CHECK (retry_count >= 0)
 );
 
+CREATE TABLE agent_core.cat_message_types (
+    type_id SERIAL PRIMARY KEY,
+    type_name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT -- Documentación de para qué sirve este componente visual
+);
+
 CREATE TABLE agent_core.messages (
     message_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     session_id UUID NOT NULL REFERENCES agent_core.sessions(session_id) ON DELETE CASCADE,
     role_id INTEGER NOT NULL REFERENCES agent_core.cat_roles(role_id),
+    
+    message_type_id INTEGER NOT NULL REFERENCES agent_core.cat_message_types(type_id) DEFAULT 1, 
+    
     content TEXT NOT NULL,
+    ui_metadata JSONB,
     tokens_used INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -270,6 +280,11 @@ INSERT INTO agent_core.cat_tags (tag_name, category) VALUES
 ('bucle-detectado', 'ia'), 
 ('abandono-neutro', 'ia'), 
 ('reclamo-tarjeta', 'negocio');
+INSERT INTO agent_core.cat_message_types (type_id, type_name, description) VALUES 
+(1, 'text', 'Globo de chat estándar con texto plano o markdown'),
+(2, 'quick_replies', 'Mensaje acompañado de botones de acción rápida'),
+(3, 'card_carousel', 'Lista horizontal deslizable de tarjetas (ej: cuentas, tarjetas)'),
+(4, 'system_alert', 'Mensaje de advertencia o error del sistema');
 
 -- Semillas: fintech_mock
 INSERT INTO fintech_mock.cat_account_types (type_name) VALUES ('Caja de Ahorro'), ('Cuenta Corriente'), ('Inversiones');
