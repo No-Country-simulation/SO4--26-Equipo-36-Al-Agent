@@ -1,0 +1,22 @@
+<div class="chat chat-start" hx-swap-oob="beforeend:#chat-history">
+    <div class="chat-image avatar">
+        <div class="w-10 rounded-full bg-gray-800 p-2 border border-neon-cyan">
+            <svg xmlns="http://www.w3.org/2000/svg" class="text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+        </div>
+    </div>
+    <div class="chat-bubble bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700 text-gray-200 shadow-md">
+        <div class="mb-3">
+            {{ content | safe }}
+        </div>
+        <div class="flex flex-wrap gap-2 mt-2">
+            {% for reply in quick_replies %}
+            <button class="btn btn-sm rounded-full bg-gray-700 hover:bg-neon-cyan hover:text-black text-white border-none transition-colors duration-300" 
+                    onclick="document.getElementById('user-message-input').value='{{ reply.payload }}'; document.getElementById('chat-form').dispatchEvent(new Event('submit', {cancelable: true, bubbles: true}));">
+                {{ reply.title }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+</div>

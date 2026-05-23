@@ -18,3 +18,7 @@ chromadb==0.4.24
 sentence-transformers==2.5.1
 rank_bm25==0.2.2
 markdown==3.5.2
+
+# Frontend
+jinja2==3.1.4
+websockets==12.0
