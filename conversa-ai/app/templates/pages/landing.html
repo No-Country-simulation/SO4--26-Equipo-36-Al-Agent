@@ -1,143 +1,149 @@
 {% extends "base.html" %}
 
-{% block title %}Conversa Pay - Tu dinero, inteligente{% endblock %}
+{% block title %}Conversa Pay - Finanzas Neo-Brutalistas{% endblock %}
 
 {% block content %}
 <!-- Navbar -->
-<nav class="fixed w-full z-50 glass-panel">
+<nav class="fixed w-full z-50 bg-brand-obsidian border-b brutal-border">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
-            <div class="flex-shrink-0 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <div class="flex-shrink-0 flex items-center gap-3">
+                <!-- Geometric Logo -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-lime" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="2" y="2" width="10" height="10" />
+                    <circle cx="17" cy="7" r="5" />
+                    <polygon points="2,22 12,22 7,12" />
                 </svg>
-                <span class="font-bold text-2xl tracking-tight text-white">Conversa <span class="neon-text">Pay</span></span>
+                <span class="font-display font-bold text-2xl tracking-tighter text-white uppercase">
+                    Conversa <span class="text-brand-lime">Pay</span>
+                </span>
             </div>
             <div class="hidden md:block">
                 <div class="ml-10 flex items-baseline space-x-8">
-                    <a href="#" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Productos</a>
-                    <a href="#" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Inversiones</a>
-                    <a href="#" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Tarjetas</a>
-                    <a href="#" class="text-gray-300 hover:text-white px-3 py-2 rounded-md text-sm font-medium transition-colors">Ayuda</a>
+                    <a href="#" class="text-white hover:text-brand-lime px-3 py-2 text-sm font-bold uppercase tracking-widest transition-colors">Productos</a>
+                    <a href="#" class="text-white hover:text-brand-lime px-3 py-2 text-sm font-bold uppercase tracking-widest transition-colors">Inversiones</a>
+                    <a href="#" class="text-white hover:text-brand-lime px-3 py-2 text-sm font-bold uppercase tracking-widest transition-colors">Tarjetas</a>
                 </div>
             </div>
             <div class="hidden md:flex gap-4">
-                <button class="btn btn-outline border-gray-600 text-white hover:border-neon-cyan hover:bg-transparent">Ingresar</button>
-                <button class="btn neon-btn border-none text-black">Abrir Cuenta</button>
+                <button class="btn brutal-btn-outline rounded-none">Ingresar</button>
+                <button class="btn brutal-btn rounded-none">Abrir Cuenta</button>
             </div>
         </div>
     </div>
 </nav>
 
 <!-- Hero Section -->
-<main class="flex-1 pt-32 pb-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
-            <div class="sm:text-center md:max-w-2xl md:mx-auto lg:col-span-6 lg:text-left">
-                <h1 class="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl lg:leading-tight">
-                    <span class="block">Tu dinero,</span>
-                    <span class="block neon-text">inteligente y</span>
-                    <span class="block">siempre disponible</span>
+<main class="flex-1 pt-32 pb-16 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div class="lg:grid lg:grid-cols-12 lg:gap-8 items-center relative z-10">
+            <!-- Left Asymmetric Typography -->
+            <div class="sm:text-left md:max-w-2xl lg:col-span-8 animate-reveal">
+                <h1 class="text-5xl tracking-tighter font-display font-extrabold text-white sm:text-7xl md:text-8xl lg:leading-none uppercase">
+                    <span class="block">Tu dinero.</span>
+                    <span class="block text-brand-lime bg-brand-obsidian inline-block">Bajo Control.</span>
+                    <span class="block text-transparent" style="-webkit-text-stroke: 2px white;">Sin Fricción.</span>
                 </h1>
-                <p class="mt-3 text-base text-gray-400 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                    Conversa Pay utiliza inteligencia artificial avanzada para optimizar tus finanzas. Chatea con tu asistente, realiza transferencias, y gestiona tus inversiones en un solo lugar.
+                <p class="mt-6 text-base font-medium text-gray-300 sm:mt-5 sm:text-xl lg:text-xl max-w-xl">
+                    Inteligencia artificial que no parece de juguete. Transfiere, invierte y analiza tus finanzas con precisión de grado militar.
                 </p>
-                <div class="mt-8 sm:max-w-lg sm:mx-auto sm:text-center lg:text-left lg:mx-0 flex gap-4">
-                    <button class="btn neon-btn btn-lg border-none text-black">Comenzar ahora</button>
-                    <button class="btn btn-outline btn-lg border-gray-600 text-white hover:border-neon-cyan">Saber más</button>
+                <div class="mt-10 flex flex-wrap gap-4">
+                    <button class="btn brutal-btn btn-lg rounded-none px-10">Comenzar Ahora <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></button>
+                    <button class="btn brutal-btn-outline btn-lg rounded-none px-8">Ver Demo</button>
                 </div>
             </div>
-            <div class="mt-12 relative sm:max-w-lg sm:mx-auto lg:mt-0 lg:max-w-none lg:mx-0 lg:col-span-6 lg:flex lg:items-center">
-                <div class="relative mx-auto w-full rounded-2xl shadow-2xl lg:max-w-md glass-panel p-2">
-                    <div class="rounded-xl overflow-hidden bg-gray-900 border border-gray-800 aspect-[9/16] relative flex flex-col items-center justify-center p-6 text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-neon-cyan opacity-50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        <h3 class="text-xl font-bold text-white mb-2">App Mockup</h3>
-                        <p class="text-sm text-gray-400">Interfáz de Conversa Pay Mobile.</p>
-                        <!-- Glow effect behind mockup -->
-                        <div class="absolute -inset-1 bg-gradient-to-r from-neon-cyan to-blue-600 rounded-2xl blur opacity-20 -z-10"></div>
+            
+            <!-- Right Geometric Graphic -->
+            <div class="mt-16 lg:mt-0 lg:col-span-4 lg:flex lg:items-center justify-end relative animate-reveal" style="animation-delay: 0.2s;">
+                <div class="brutal-box p-6 w-full aspect-square flex flex-col justify-between relative bg-brand-obsidian">
+                    <div class="flex justify-between items-start">
+                        <span class="font-display text-brand-lime text-xl font-bold">CPY_01</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
                     </div>
+                    <div class="text-right">
+                        <h3 class="text-5xl font-display font-bold text-white">$45,291.00</h3>
+                        <p class="text-sm font-bold text-brand-lime uppercase tracking-widest mt-2">+12.4% ESTE MES</p>
+                    </div>
+                    
+                    <!-- Decorative strict grid lines behind -->
+                    <div class="absolute inset-0 pointer-events-none brutal-border opacity-20" style="background-image: linear-gradient(var(--border-color) 1px, transparent 1px), linear-gradient(90deg, var(--border-color) 1px, transparent 1px); background-size: 20px 20px;"></div>
                 </div>
             </div>
         </div>
     </div>
     
     <!-- Features Grid -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-32">
-        <div class="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
-            <div class="glass-panel p-8 rounded-2xl text-center hover:border-neon-cyan transition-colors duration-300">
-                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-900 border border-neon-cyan mb-6 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-40">
+        <div class="flex mb-8 items-end gap-4 animate-reveal" style="animation-delay: 0.3s;">
+            <h2 class="text-4xl font-display font-bold text-white uppercase">Arquitectura del Sistema</h2>
+            <div class="flex-1 h-px bg-brand-border mb-2"></div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-0 border border-brand-border animate-reveal" style="animation-delay: 0.4s;">
+            
+            <div class="brutal-box bg-brand-obsidian p-8 border-none border-b md:border-b-0 md:border-r border-brand-border hover:bg-white hover:text-black group transition-colors">
+                <div class="h-16 w-16 bg-brand-lime flex items-center justify-center border-2 border-brand-obsidian mb-8 brutal-box shadow-none group-hover:bg-brand-obsidian group-hover:border-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-obsidian group-hover:text-brand-lime" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Transferencias 24/7</h3>
-                <p class="text-gray-400">Envía y recibe dinero al instante, sin comisiones, a cualquier hora y en cualquier lugar.</p>
+                <h3 class="text-xl font-display font-bold mb-4 uppercase">Inferencia en Tiempo Real</h3>
+                <p class="font-medium opacity-80">El motor analiza tu intención de transferencia sin latencia perceptible.</p>
             </div>
             
-            <div class="glass-panel p-8 rounded-2xl text-center hover:border-neon-cyan transition-colors duration-300">
-                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-900 border border-neon-cyan mb-6 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            <div class="brutal-box bg-brand-obsidian p-8 border-none border-b md:border-b-0 md:border-r border-brand-border hover:bg-brand-lime hover:text-black group transition-colors">
+                <div class="h-16 w-16 bg-white flex items-center justify-center border-2 border-brand-obsidian mb-8 brutal-box shadow-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-obsidian" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Inversiones Automatizadas con IA</h3>
-                <p class="text-gray-400">Deja que nuestra IA analice el mercado y optimice tu cartera de forma inteligente.</p>
+                <h3 class="text-xl font-display font-bold mb-4 uppercase">Step-up Auth</h3>
+                <p class="font-medium opacity-80">Seguridad condicional inyectada en el flujo conversacional. Validación OTP asíncrona.</p>
             </div>
             
-            <div class="glass-panel p-8 rounded-2xl text-center hover:border-neon-cyan transition-colors duration-300">
-                <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gray-900 border border-neon-cyan mb-6 shadow-[0_0_15px_rgba(0,240,255,0.3)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            <div class="brutal-box bg-brand-obsidian p-8 border-none hover:bg-white hover:text-black group transition-colors">
+                <div class="h-16 w-16 bg-brand-lime flex items-center justify-center border-2 border-brand-obsidian mb-8 brutal-box shadow-none group-hover:bg-brand-obsidian group-hover:border-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-obsidian group-hover:text-brand-lime" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-white mb-3">Tarjetas Virtuales Seguras</h3>
-                <p class="text-gray-400">Crea tarjetas virtuales desechables al instante para compras online 100% seguras.</p>
+                <h3 class="text-xl font-display font-bold mb-4 uppercase">Memoria Episódica RAG</h3>
+                <p class="font-medium opacity-80">Recuperación semántica aislada por entidad. El bot no olvida tus directivas previas.</p>
             </div>
+            
         </div>
     </div>
 </main>
 
 <!-- Footer -->
-<footer class="bg-navy-card py-12 border-t border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-6">
-        <div class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span class="font-bold text-lg text-white">Conversa Pay</span>
+<footer class="bg-brand-obsidian py-8 border-t border-brand-border mt-20">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4">
+        <span class="font-display font-bold text-xl uppercase tracking-tighter text-white">Conversa <span class="text-brand-lime">Pay</span> // 2026</span>
+        <div class="flex gap-6 text-sm font-bold uppercase tracking-widest">
+            <a href="#" class="hover:text-brand-lime">STATUS: SECURE</a>
+            <a href="#" class="hover:text-brand-lime">DOCS</a>
         </div>
-        <div class="flex flex-wrap justify-center gap-6 text-sm text-gray-400">
-            <a href="#" class="hover:text-neon-cyan">Términos</a>
-            <a href="#" class="hover:text-neon-cyan">Privacidad</a>
-            <a href="#" class="hover:text-neon-cyan">Seguridad</a>
-            <a href="#" class="hover:text-neon-cyan">Ayuda</a>
-        </div>
-        <p class="text-sm text-gray-500">© 2026 Conversa Pay. Todos los derechos reservados.</p>
     </div>
 </footer>
 
 <!-- Floating Chatbot Widget Trigger -->
-<div class="fixed bottom-6 right-6 z-[60]">
-    <div class="relative">
-        <div class="absolute inset-0 bg-neon-cyan rounded-full animate-ping opacity-30"></div>
-        <button id="chat-widget-trigger" onclick="document.getElementById('chat-modal').showModal()" class="relative btn btn-circle btn-lg neon-btn border-none shadow-2xl z-10 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-            </svg>
-        </button>
-    </div>
+<div class="fixed bottom-6 right-6 z-[60] animate-reveal" style="animation-delay: 1s;">
+    <button id="chat-widget-trigger" onclick="document.getElementById('chat-modal').showModal()" class="brutal-box lime bg-brand-lime w-16 h-16 flex items-center justify-center hover:scale-110 transition-transform cursor-pointer">
+        <!-- Sharp geometric chat icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-brand-obsidian" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2 2h20v14H6l-4 4V2z"/>
+        </svg>
+    </button>
 </div>
 
-<!-- Chat Modal (DaisyUI Dialog) -->
-<dialog id="chat-modal" class="modal modal-bottom sm:modal-middle">
-    <div class="modal-box p-0 bg-transparent shadow-none max-w-sm overflow-visible" style="height: 600px;">
+<!-- Chat Modal (Custom Brutalist Off-canvas style) -->
+<dialog id="chat-modal" class="modal bg-black/60 backdrop-blur-sm">
+    <div class="modal-box w-full max-w-md h-[600px] max-h-[90vh] p-0 rounded-none bg-brand-obsidian brutal-border border-2 overflow-visible absolute right-4 bottom-24 shadow-[8px_8px_0px_#ccff00] transform transition-transform">
         {% set is_popup = true %}
         {% include 'components/chat_core.html' %}
     </div>
-    <form method="dialog" class="modal-backdrop bg-black/40 backdrop-blur-sm">
-        <button>close</button>
+    <!-- Click outside to close -->
+    <form method="dialog" class="modal-backdrop">
+        <button class="cursor-default">close</button>
     </form>
 </dialog>
 {% endblock %}

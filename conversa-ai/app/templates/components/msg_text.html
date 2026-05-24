@@ -1,21 +1,16 @@
 <!-- User Message (if role == 'user') -->
 {% if role == 'user' %}
-<div class="chat chat-end" hx-swap-oob="beforeend:#chat-history">
-    <div class="chat-bubble bg-gray-700 text-white">
+<div class="chat chat-end flex flex-col gap-1 items-end w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
+    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pr-1">[ USUARIO ]</span>
+    <div class="brutal-box bg-brand-lime text-black border-brand-obsidian p-4 w-fit max-w-[85%] text-sm md:text-base leading-relaxed font-medium">
         {{ content }}
     </div>
 </div>
 {% else %}
 <!-- Assistant Message -->
-<div class="chat chat-start" hx-swap-oob="beforeend:#chat-history">
-    <div class="chat-image avatar">
-        <div class="w-10 rounded-full bg-gray-800 p-2 border border-neon-cyan">
-            <svg xmlns="http://www.w3.org/2000/svg" class="text-neon-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-        </div>
-    </div>
-    <div class="chat-bubble bg-gradient-to-r from-gray-800 to-gray-900 border border-gray-700 text-gray-200 shadow-md" {% if msg_id %}id="response-{{ msg_id }}"{% endif %}>
+<div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
+    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ CONVERSA ]</span>
+    <div class="brutal-box bg-transparent text-white border-brand-border p-4 w-fit max-w-[85%] text-sm md:text-base leading-relaxed" {% if msg_id %}id="response-{{ msg_id }}"{% endif %}>
         {{ content | safe }}
     </div>
 </div>
