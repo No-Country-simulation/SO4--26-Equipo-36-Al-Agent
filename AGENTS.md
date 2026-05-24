@@ -9,7 +9,7 @@ This document serves as your definitive system prompt, context guide, and archit
 ## 1. Project Context & Domain
 
 ConversaAI is a dual ecosystem:
-1. **Intelligent Agent (Inference):** A chatbot orchestrating conversations via LangGraph and Groq APIs to resolve specific user queries on WhatsApp/Telegram.
+1. **Intelligent Agent (Inference):** A chatbot orchestrating conversations via LangGraph and Groq APIs to resolve specific user queries on its custom web interface.
 2. **Evaluator System (Analytics):** An asynchronous ETL pipeline processing historical sessions to identify user frustration, unresolved intents, and drop-offs using Hugging Face (pysentimiento) and injecting them into a Star-Schema data warehouse for a Streamlit Dashboard.
 
 ---
@@ -19,7 +19,7 @@ ConversaAI is a dual ecosystem:
 The system is built as a **Modular Monolith** using FastAPI. You must enforce strict isolation between business domains.
 
 * **Layered Scaffolding:**
-  * `app/api/`: Interfaces and adapters (Webhooks for WhatsApp/Telegram). **NO business logic here.**
+  * `app/api/`: Interfaces and adapters (WebSockets for the web interface). **NO business logic here.**
   * `app/modules/`: The core. Divided strictly into `agent/` and `evaluator/`. **Cross-module imports are heavily restricted.** Modules communicate via defined public interfaces.
   * `app/common/`: Shared domain entities, SQLAlchemy models, and schemas.
   * `app/core/`: Infrastructure, dependency injection, config (`Settings`), and database connections.
@@ -41,7 +41,7 @@ We use a single PostgreSQL instance logically separated into four strict schemas
 
 **Vector Storage & Episodic Memory (ChromaDB):** RAG embeddings must be queried against a dedicated **ChromaDB Server** container via HTTP client. **Do NOT use local embedded Chroma files**.
 To ensure the bot acts intelligently without hallucinating user facts with static policies, ChromaDB MUST use isolated collections and strict metadata filtering:
-* **`nexopay_knowledge_base` (Collection A):** Static, global, read-only documentation for the agent.
+* **`conversapay_knowledge_base` (Collection A):** Static, global, read-only documentation for the agent.
 * **`user_long_term_memory` (Collection B):** Highly dynamic episodic memory. All embeddings stored here MUST inject a metadata dictionary (e.g., `{"user_id": "usr_123"}`) to ensure the agent performs strictly conditioned searches and respects multi-tenant privacy.
 
 ---

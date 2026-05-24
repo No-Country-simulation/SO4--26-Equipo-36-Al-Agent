@@ -4,7 +4,7 @@
 
 **Clasificación:** Confidencial / Uso Interno Obligatorio para el Orquestador LangGraph
 
-**Entidad Operativa:** Nexo Pay S.A.
+**Entidad Operativa:** Conversa Pay S.A.
 
 **Capa de Arquitectura:** Capa de Dominio y Datos Compartidos (Abstracción del Enrutador de IA)
 
@@ -12,7 +12,7 @@
 
 # 1\. Marco conceptual de la ontología y arquitectura del enrutador (*router*)
 
-El sistema Nexo Pay procesa consultas conversacionales a escala masiva a través de una arquitectura híbrida. Para garantizar que las respuestas sean verídicas, seguras y eficientes, el agente de Inteligencia Artificial debe clasificar la entrada del usuario de forma binaria e inmediata en una de las dos capas de procesamiento disponibles: la **Capa de Recuperación Semántica (RAG)** o la **Capa de Ejecución Transaccional (SQL Tools)**.
+El sistema Conversa Pay procesa consultas conversacionales a escala masiva a través de una arquitectura híbrida. Para garantizar que las respuestas sean verídicas, seguras y eficientes, el agente de Inteligencia Artificial debe clasificar la entrada del usuario de forma binaria e inmediata en una de las dos capas de procesamiento disponibles: la **Capa de Recuperación Semántica (RAG)** o la **Capa de Ejecución Transaccional (SQL Tools)**.
 
 ## 1.1 El riesgo de la frontera difusa y alucinación cruzada
 
@@ -23,7 +23,7 @@ Si el agente conversacional carece de una ontología clara, se expone a fallas c
 
 # 2\. Clasificación categórica de la información estática y teórica (capa rag)
 
-La **Capa RAG (Retrieval-Augmented Generation)** se alimenta exclusivamente del Vector Store. Comprende toda la información institucional, normativa, comercial, legal y procedimental que no cambia en tiempo real por cada transacción individual, sino que constituye el marco de reglas fijas de Nexo Pay.
+La **Capa RAG (Retrieval-Augmented Generation)** se alimenta exclusivamente del Vector Store. Comprende toda la información institucional, normativa, comercial, legal y procedimental que no cambia en tiempo real por cada transacción individual, sino que constituye el marco de reglas fijas de Conversa Pay.
 
 ## 2.1 Criterios de inclusión en la capa rag
 

@@ -6,7 +6,7 @@
 
 **Clasificación:** Confidencial / Uso Interno para Agente ConversaAI y Soporte Humano
 
-**Entidad Operativa:** Nexo Pay S.A.
+**Entidad Operativa:** Conversa Pay S.A.
 
 **Última Revisión:** Mayo de 2026
 
@@ -17,7 +17,7 @@
 El compromiso físico o virtual de una tarjeta exige una respuesta inmediata para contener el riesgo de pérdidas financieras. El usuario puede manifestar este estado de emergencia en el canal de chat utilizando lenguaje coloquial o técnico (*"perdí mi tarjeta de débito"*, *"me robaron la billetera con la de crédito"*, *"creo que me clonaron la tarjeta en un cajero"*, *"veo consumos de un plástico que no solicité"*).
 
 * **Acción del Asistente Virtual:** Al procesar este pedido, el asistente de IA invocará de forma prioritaria la función de inhabilitación de tarjetas. El sistema registrará el plástico afectado bajo el estado de "Bloqueo Permanente".  
-* **Irreversibilidad de la Denuncia:** Por políticas internacionales de mitigación de fraudes de Nexo Pay, una vez que una tarjeta física ha sido denunciada por robo o extravío, su inhabilitación es definitiva. El asistente virtual no está autorizado a reactivar una tarjeta denunciada bajo ninguna circunstancia, previniendo ataques de ingeniería social donde un tercero intenta dar de alta un plástico robado.  
+* **Irreversibilidad de la Denuncia:** Por políticas internacionales de mitigación de fraudes de Conversa Pay, una vez que una tarjeta física ha sido denunciada por robo o extravío, su inhabilitación es definitiva. El asistente virtual no está autorizado a reactivar una tarjeta denunciada bajo ninguna circunstancia, previniendo ataques de ingeniería social donde un tercero intenta dar de alta un plástico robado.  
 * **Reposición y Logística de Nuevos Plásticos:** La confirmación del bloqueo genera automáticamente una orden de impresión y distribución de un nuevo plástico hacia el domicilio del cliente. La primera reposición anual de la tarjeta de débito está completamente bonificada. Reposiciones consecutivas dentro del mismo año fiscal sufrirán un cargo administrativo que se debitará del saldo disponible de la cuenta.  
 * **Emisión de Tarjeta Virtual de Emergencia:** Para garantizar la continuidad transaccional y evitar que el cliente quede financieramente inmovilizado durante los días que demore la entrega del plástico físico, el sistema ofrecerá la habilitación instantánea de una tarjeta virtual con credenciales nuevas y un código de seguridad dinámico de alta expiración.
 
@@ -42,13 +42,13 @@ Este protocolo de máxima prioridad se activa cuando el usuario reporta que terc
 
 ## 2.2 Exclusiones de responsabilidad financiera por negligencia del usuario
 
-* **Divulgación Voluntaria de Credenciales:** Nexo Pay queda exenta de la obligación de restitución de fondos si las auditorías de accesos demuestran que el compromiso de la cuenta se produjo porque el usuario facilitó deliberadamente sus factores de autenticación (claves secretas o tokens dinámicos) a un tercero, violando las políticas de confidencialidad del servicio.
+* **Divulgación Voluntaria de Credenciales:** Conversa Pay queda exenta de la obligación de restitución de fondos si las auditorías de accesos demuestran que el compromiso de la cuenta se produjo porque el usuario facilitó deliberadamente sus factores de autenticación (claves secretas o tokens dinámicos) a un tercero, violando las políticas de confidencialidad del servicio.
 
 # 3\. Protocolo para la gestión de débitos automáticos y reversas (stop debit)
 
 ## 3.1 Suspensión de cobros inminentes de servicios (Stop Debit)
 
-El usuario posee el derecho de detener un cobro preautorizado asociado a una empresa de servicios adherida a su cuenta de Nexo Pay (*"quiero que no me descuenten la cuota de este mes"*, *"hacer un stop debit a la factura"*, *"frenar el cobro automático de servicios"*).
+El usuario posee el derecho de detener un cobro preautorizado asociado a una empresa de servicios adherida a su cuenta de Conversa Pay (*"quiero que no me descuenten la cuota de este mes"*, *"hacer un stop debit a la factura"*, *"frenar el cobro automático de servicios"*).
 
 * **Restricción de Ventana Temporal:** Para que la orden de Stop Debit sea viable para el ciclo de facturación actual, la solicitud debe ser procesada con una antelación mínima de **48 horas hábiles** respecto de la fecha estimada de cobro. Las solicitudes entrantes fuera de esta ventana no podrán frenar el débito y el usuario deberá recurrir al protocolo de reversión posterior.  
 * **Efecto de la Orden de Exclusión:** La función de Stop Debit genera una regla de rechazo temporal en el motor de pagos que bloquea las peticiones de cobro entrantes que coincidan con la empresa por el mes calendario en curso, impidiendo que afecte el saldo disponible.  

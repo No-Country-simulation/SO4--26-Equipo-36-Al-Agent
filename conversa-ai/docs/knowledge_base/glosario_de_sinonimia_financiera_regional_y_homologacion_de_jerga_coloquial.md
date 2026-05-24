@@ -4,7 +4,7 @@
 
 **Clasificación:** Confidencial / Uso Interno Obligatorio para Enriquecimiento del Vector Store y Agente ConversaAI
 
-**Entidad Operativa:** Nexo Pay S.A.
+**Entidad Operativa:** Conversa Pay S.A.
 
 **Cobertura Semántica:** América Latina y Brasil (Fusión de Modismos, Lunfardo y Jerga Financiera Regional)
 
@@ -16,7 +16,7 @@ Los modelos de embeddings comerciales tradicionales y de código abierto son ent
 
 Si un usuario escribe de forma desesperada en el chat de WhatsApp: *«Quiero meter toda mi guita en el cosito que rinde por día en la app»*, un buscador vectorial convencional sin indexación regional podría sufrir desviaciones de distancia semántica, provocando que el asistente virtual no comprenda la solicitud o responda que la información no está disponible.
 
-Este glosario funciona como una **capa de traducción conceptual y puente semántico**. Su objetivo es asociar de forma matemática y unívoca las expresiones populares con los conceptos formales de los manuales de negocio de Nexo Pay S.A.
+Este glosario funciona como una **capa de traducción conceptual y puente semántico**. Su objetivo es asociar de forma matemática y unívoca las expresiones populares con los conceptos formales de los manuales de negocio de Conversa Pay S.A.
 
 # 2\. Matriz expandida de equivalencias por dominios financieros
 
@@ -24,7 +24,7 @@ A continuación, se establecen las equivalencias conceptuales obligatorias. Toda
 
 ## 2.1 Dominio de capital, fondos dinero y concepto de "saldo disponible"
 
-Toda expresión que denote la posesión, el resguardo o la falta de dinero líquido del cliente debe mapearse semánticamente hacia las guías de **Consulta de Saldo de Cuenta**, **Balances Operativos** o **Estructura de Costos de Cuentas** de Nexo Pay.
+Toda expresión que denote la posesión, el resguardo o la falta de dinero líquido del cliente debe mapearse semánticamente hacia las guías de **Consulta de Saldo de Cuenta**, **Balances Operativos** o **Estructura de Costos de Cuentas** de Conversa Pay.
 
 * **Expresiones en Argentina y Uruguay:** *Guita, plata, mangos, guitola, efectivo, capital, fondos, mosca, pasta, los cobres, el saldo, saldo de la cuenta, balance de la cuenta, capital total*.  
 * **Expresiones en Brasil (Portugués):** *Grana, dinheiro, bufunfa, dindim, cascalho, numerário, saldo disponível, balanço da conta, fundos da conta, capital disponível*.  
@@ -36,7 +36,7 @@ Toda expresión que denote la posesión, el resguardo o la falta de dinero líqu
 
 ## 2.2 Dominio de inversiones, intereses y concepto de "fondo común de inversión (fci)"
 
-Toda consulta donde el usuario busque generar rendimientos con su capital o consulte sobre tasas pasivas sin inmovilizar el dinero de forma estricta debe mapearse semánticamente hacia la **Guía de Productos Financieros e Inversiones (Sección del Fondo de Liquidez 24/7)** de Nexo Pay.
+Toda consulta donde el usuario busque generar rendimientos con su capital o consulte sobre tasas pasivas sin inmovilizar el dinero de forma estricta debe mapearse semánticamente hacia la **Guía de Productos Financieros e Inversiones (Sección del Fondo de Liquidez 24/7)** de Conversa Pay.
 
 * **Expresiones en Argentina y Uruguay:** *El cosito que rinde por día, poner a trabajar la plata, cuenta remunerada, interés diario del fondo, rendimiento de la app, invertir los mangos, la tasa del fondo, el fondo común de inversión, el interés diario*.  
 * **Expresiones en Brasil (Portugués):** *Investimento diário, render todo dia, caixinha rendendo, rendimento diário, fundo de liquidez diária, juros do fundo, aplicação diária, conta rendeira*.  
@@ -48,9 +48,9 @@ Toda consulta donde el usuario busque generar rendimientos con su capital o cons
 
 ## 2.3 Dominio de incidentes en cajeros y concepto de "inhabilitación o retención de tarjetas"
 
-Toda consulta donde el cliente describa que un dispositivo físico retuvo su plástico o que se ha quedado sin acceso a su tarjeta debido a un evento físico externo debe mapearse hacia el **Manual de Procedimientos de Emergencia y Seguridad (Sección de Denuncia y Bloqueo de Tarjetas)** de Nexo Pay.
+Toda consulta donde el cliente describa que un dispositivo físico retuvo su plástico o que se ha quedado sin acceso a su tarjeta debido a un evento físico externo debe mapearse hacia el **Manual de Procedimientos de Emergencia y Seguridad (Sección de Denuncia y Bloqueo de Tarjetas)** de Conversa Pay.
 
-* **Expresiones en Argentina y Uruguay:** *Me comió la tarjeta, el cajero tragó el plástico, me quedé sin tarjeta, el aparato se quedó con la de débito, me retuvo la tarjeta, plástico trabado en el cajero, denunciar tarjeta de Nexo Pay*.  
+* **Expresiones en Argentina y Uruguay:** *Me comió la tarjeta, el cajero tragó el plástico, me quedé sin tarjeta, el aparato se quedó con la de débito, me retuvo la tarjeta, plástico trabado en el cajero, denunciar tarjeta de Conversa Pay*.  
 * **Expresiones en Brasil (Portugués):** *O caixa engoliu o cartão, cartão retido no caixa eletrônico, máquina prendeu o cartão, perdi o cartão no caixa, bloquear cartão de débito, inativar cartão*.  
 * **Expresiones en México:** *El cajero retuvo mi tarjeta, se tragó el plástico, la máquina se quedó con mi tarjeta de débito, tarjeta atorada en el cajero, reportar tarjeta por retención*.  
 * **Expresiones en Colombia y Venezuela:** *El cajero me retuvo la tarjeta, tragar tarjeta el cajero, se me quedó la tarjeta metida en el aparato, máquina robó tarjeta, reportar plástico por retención*.  
@@ -60,7 +60,7 @@ Toda consulta donde el cliente describa que un dispositivo físico retuvo su pl�
 
 ## 2.4 Dominio de movimientos externos y concepto de "transferencia hacia terceros"
 
-Toda solicitud donde el usuario describa la acción de enviar dinero desde su cuenta hacia otra entidad bancaria o virtual, o solicite los identificadores de red de otra persona, debe mapearse hacia las **Políticas Comerciales, Costos y Límites (Sección de Transferencias a Cuentas de Terceros)** de Nexo Pay.
+Toda solicitud donde el usuario describa la acción de enviar dinero desde su cuenta hacia otra entidad bancaria o virtual, o solicite los identificadores de red de otra persona, debe mapearse hacia las **Políticas Comerciales, Costos y Límites (Sección de Transferencias a Cuentas de Terceros)** de Conversa Pay.
 
 * **Expresiones en Argentina y Uruguay:** *Transfer, transferir, mandar plata, pasar CBU, pasar Alias, hacer una transferencia, mandarle guita a un amigo, girar dinero, pasar fondos a otra cuenta, hacer una transferencia bancaria*.  
 * **Expresiones en Brasil (Portugués):** *Pix, fazer um pix, passar o pix, fazer transferência, mandar dinheiro para outra conta, fazer um DOC, fazer uma TED, passar os dados da conta bancária*.  
@@ -72,13 +72,13 @@ Toda solicitud donde el usuario describa la acción de enviar dinero desde su cu
 
 ## 2.5 Dominio de entornos digitales y concepto de "interfaz de usuario e infraestructura móvil"
 
-Toda frase que describa el entorno de software de la empresa, los paneles visuales, los menús de navegación o los accesos de la plataforma debe mapearse hacia la **Guía de Soporte Técnico, Accesibilidad y Autogestión de la Aplicación** de Nexo Pay.
+Toda frase que describa el entorno de software de la empresa, los paneles visuales, los menús de navegación o los accesos de la plataforma debe mapearse hacia la **Guía de Soporte Técnico, Accesibilidad y Autogestión de la Aplicación** de Conversa Pay.
 
-* **Expresiones en Argentina y Uruguay:** *Home banking, la app, el panel, la aplicación, la plataforma, la pantalla del celular, el menú de Nexo Pay, el sistema operativo de la billetera virtual*.  
+* **Expresiones en Argentina y Uruguay:** *Home banking, la app, el panel, la aplicación, la plataforma, la pantalla del celular, el menú de Conversa Pay, el sistema operativo de la billetera virtual*.  
 * **Expresiones en Brasil (Portugués):** *Aplicativo, app, tela do celular, o sistema do banco, home banking, plataforma digital, menu do aplicativo, interface do usuário*.  
-* **Expresiones en México:** *La app, banca móvil, la aplicación, el portal digital, la plataforma, la pantalla de inicio, el menú de la aplicación de Nexo Pay*.  
-* **Expresiones en Colombia y Venezuela:** *La app, la sucursal virtual, la aplicación móvil, la plataforma digital, el sistema en el celular, la pantalla de Nexo Pay*.  
-* **Expresiones en Chile y Paraguay:** *La app, la aplicación del celular, la sucursal virtual, el portal web, el panel de control, la pantalla móvil de Nexo Pay*.  
+* **Expresiones en México:** *La app, banca móvil, la aplicación, el portal digital, la plataforma, la pantalla de inicio, el menú de la aplicación de Conversa Pay*.  
+* **Expresiones en Colombia y Venezuela:** *La app, la sucursal virtual, la aplicación móvil, la plataforma digital, el sistema en el celular, la pantalla de Conversa Pay*.  
+* **Expresiones en Chile y Paraguay:** *La app, la aplicación del celular, la sucursal virtual, el portal web, el panel de control, la pantalla móvil de Conversa Pay*.  
 * **Expresiones en Perú, Ecuador y Bolivia:** *La app, la banca por internet, la aplicación móvil, el sistema digital, la pantalla de navegación, la plataforma financiera*.  
 * **Expresiones en Costa Rica y Centroamérica:** *La app, la aplicación del celular, la sucursal electrónica, la pantalla de la billetera, el menú móvil*.
 
@@ -88,13 +88,13 @@ Para asegurar que estas matrices de sinonimia se ejecuten con una precisión mat
 
 ## 3.1 Ponderación de intención coloquial por encima de la literalidad
 
-Si la consulta del cliente contiene términos indexados en este glosario, el sistema de inferencia ignorará el significado técnico o literal aislado de la palabra y priorizará el concepto de dominio homologado de Nexo Pay.
+Si la consulta del cliente contiene términos indexados en este glosario, el sistema de inferencia ignorará el significado técnico o literal aislado de la palabra y priorizará el concepto de dominio homologado de Conversa Pay.
 
 * *Ejemplo:* Si una entrada de la Región Río de la Plata menciona la palabra *"máquina"* en la estructura *"Gracias máquina"*, el motor semántico descartará que el usuario se refiere a un cajero automático o un hardware físico, clasificando el fragmento de forma atómica dentro de la categoría de **Gestión de Charlas Triviales (Chitchat) \- Cierre de Cortesía**.
 
 ## 3.2 Homologación de acciones regionales de terceros (casos de éxito de ruteo)
 
-El enrutador conversacional utilizará las equivalencias de herramientas locales (como *Pix* en Brasil, *SPEI* en México, *Yape/Plin* en Perú o *SINPE* en Costa Rica) como sinónimos estrictos de la función general de **Transferencia hacia Terceros**. El bot no debe explicarle al usuario la infraestructura técnica de su país, sino procesar la intención bajo las reglas de negocio de límites y tiempos de acreditación de las transferencias de Nexo Pay descritas en los manuales de políticas comerciales.
+El enrutador conversacional utilizará las equivalencias de herramientas locales (como *Pix* en Brasil, *SPEI* en México, *Yape/Plin* en Perú o *SINPE* en Costa Rica) como sinónimos estrictos de la función general de **Transferencia hacia Terceros**. El bot no debe explicarle al usuario la infraestructura técnica de su país, sino procesar la intención bajo las reglas de negocio de límites y tiempos de acreditación de las transferencias de Conversa Pay descritas en los manuales de políticas comerciales.
 
 ## 3.3 Aislamiento de datos de entrada para el módulo evaluador (olap)
 

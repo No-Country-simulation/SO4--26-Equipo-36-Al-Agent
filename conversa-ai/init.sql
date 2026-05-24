@@ -270,7 +270,7 @@ CREATE INDEX idx_fact_tag_assignment_tag ON analytics_warehouse.fact_tag_assignm
 
 -- 4. Inserción de datos semillas (Seeds)
 -- Semillas: agent_core
-INSERT INTO agent_core.cat_channels (channel_name) VALUES ('whatsapp'), ('telegram');
+INSERT INTO agent_core.cat_channels (channel_name) VALUES ('web_chat');
 INSERT INTO agent_core.cat_roles (role_name) VALUES ('user'), ('assistant'), ('system');
 INSERT INTO agent_core.cat_session_statuses (status_id, status_name) 
 VALUES (1, 'IN_PROGRESS'), (2, 'FINISHED'), (3, 'EVALUATING'), (4, 'COMPLETED'), (5, 'FAILED');

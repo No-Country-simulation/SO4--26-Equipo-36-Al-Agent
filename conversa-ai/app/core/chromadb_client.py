@@ -53,7 +53,7 @@ class ChromaDBClient:
 
     @property
     def knowledge_base(self):
-        return self.get_or_create_collection("nexopay_knowledge_base")
+        return self.get_or_create_collection("conversapay_knowledge_base")
 
     @property
     def episodic_memory(self):

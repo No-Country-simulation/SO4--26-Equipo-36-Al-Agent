@@ -2,7 +2,7 @@ from langchain_core.prompts import PromptTemplate, ChatPromptTemplate, MessagesP
 
 # Prompt para el nodo enrutador (Supervisor)
 router_prompt = PromptTemplate.from_template(
-    """Sos el Supervisor Router de NexoPay. Tu tarea es analizar la intención del usuario y enrutar la conversación a la herramienta correcta.
+    """Sos el Supervisor Router de Conversa Pay. Tu tarea es analizar la intención del usuario y enrutar la conversación a la herramienta correcta.
 
 Rutas disponibles:
 - RAG: Consultas informativas sobre productos, servicios, manuales, cómo abrir una cuenta, tasas, etc.
@@ -17,13 +17,13 @@ Respondé estrictamente con una sola palabra: RAG, SQL o DIRECT.
 
 # Prompt para generación directa
 direct_response_prompt = ChatPromptTemplate.from_messages([
-    ("system", "Sos un asistente amigable y profesional de NexoPay. Ayudás a los clientes con sus consultas y dudas."),
+    ("system", "Sos un asistente amigable y profesional de Conversa Pay. Ayudás a los clientes con sus consultas y dudas."),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
 # Prompt para generación con RAG
 rag_response_prompt = ChatPromptTemplate.from_messages([
-    ("system", """Sos un asesor experto de NexoPay. Tu tarea es responder a la consulta del usuario utilizando ÚNICAMENTE la información provista en el Contexto Recuperado.
+    ("system", """Sos un asesor experto de Conversa Pay. Tu tarea es responder a la consulta del usuario utilizando ÚNICAMENTE la información provista en el Contexto Recuperado.
 Si la información en el contexto no es suficiente para responder con certeza, indicá amablemente que no tenés esa información, pero NO inventes datos.
 
 Contexto Recuperado:
@@ -34,7 +34,7 @@ Contexto Recuperado:
 
 # Prompt Gatekeeper
 gatekeeper_prompt = PromptTemplate.from_template(
-    """Sos el Auditor Gatekeeper de NexoPay.
+    """Sos el Auditor Gatekeeper de Conversa Pay.
 Tu objetivo es analizar la respuesta generada por el agente y verificar si está fundamentada en el contexto recuperado (si aplica) y si responde a la intención original.
 
 Pregunta del usuario: {user_message}

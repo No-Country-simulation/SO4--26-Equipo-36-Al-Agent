@@ -127,7 +127,7 @@ Para garantizar un sistema de inferencia sólido, predecible y capaz de escalar 
 * **El detalle técnico:** Es el primer nodo de tu grafo. Debe decidir de forma determinista si la pregunta se resuelve leyendo un documento estático (RAG) o si requiere ejecutar una herramienta (*Tool*) que consulte tablas operativas mediante SQL. Esto evita colisiones y falsos positivos.
 
 **5. Step-up Auth (Autenticación de Doble Factor por Canal):**
-* **La práctica:** Las interfaces de mensajería (WhatsApp/Telegram) tienen "Soft Auth" nativo por número telefónico. Para prevenir clonación de sesión o robo de dispositivo, si el router de intenciones detecta un pedido de información transaccional sensible, el flujo debe desviarse a un **Nodo de Autenticación** asíncrono que valide la identidad real enviando un OTP (One-Time Password) por correo, antes de permitir la lectura relacional de datos.
+* **La práctica:** La interfaz web de mensajería (Web Chat) tiene "Soft Auth" nativo por sesión anónima o temporal. Para prevenir clonación de sesión o robo de dispositivo, si el router de intenciones detecta un pedido de información transaccional sensible, el flujo debe desviarse a un **Nodo de Autenticación** asíncrono que valide la identidad real enviando un OTP (One-Time Password) por correo, antes de permitir la lectura relacional de datos.
 
 **6. Separación de Vocabulario y Lógica (Abstracción):**
 * **La práctica:** Nunca hardcodear las instrucciones (*prompts*) dentro de la lógica de ejecución del código. Utilizar `PromptTemplates` almacenados en un repositorio central o gestionados desde la nube. Esto permite iterar y mejorar la comunicación del modelo sin tener que recompilar la aplicación.
@@ -146,7 +146,7 @@ Para garantizar un sistema de inferencia sólido, predecible y capaz de escalar 
 #### 9.4. Memoria Episódica en ChromaDB (Privacidad y Aislamiento Multi-Tenant)
 
 **9. Colecciones Vectoriales Separadas:**
-* **La práctica:** No mezclar manuales técnicos con recuerdos de usuarios. En ChromaDB, instanciar dos colecciones aisladas: `nexopay_knowledge_base` (estática, global y de solo lectura) y `user_long_term_memory` (dinámica y conversacional). Esto evita filtraciones de privacidad y alucinaciones cruzadas.
+* **La práctica:** No mezclar manuales técnicos con recuerdos de usuarios. En ChromaDB, instanciar dos colecciones aisladas: `conversapay_knowledge_base` (estática, global y de solo lectura) y `user_long_term_memory` (dinámica y conversacional). Esto evita filtraciones de privacidad y alucinaciones cruzadas.
 
 **10. Búsqueda Condicionada por Metadatos:**
 * **La práctica:** Al insertar recuerdos episódicos (ej. *"Prefiere fondos de liquidez en lugar de plazos fijos"*), se debe inyectar un diccionario de metadatos con el `user_id`. Al momento de consultar, el sistema fuerza un filtrado estricto: *"Buscar este vector, PERO SÓLO donde el user_id coincida"*. 
