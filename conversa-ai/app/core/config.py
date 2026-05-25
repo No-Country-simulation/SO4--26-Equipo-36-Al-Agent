@@ -43,11 +43,7 @@ class Settings(BaseSettings):
     LANGCHAIN_API_KEY: str = ""
     LANGCHAIN_PROJECT: str = "conversa-ai-project"
 
-    # Messaging Channels
-    TELEGRAM_BOT_TOKEN: str = ""
-    WHATSAPP_TOKEN: str = ""
-    WHATSAPP_PHONE_NUMBER_ID: str = ""
-    VERIFY_TOKEN: str = ""
+
 
     # ChromaDB
     CHROMA_HOST: str = "chromadb"
