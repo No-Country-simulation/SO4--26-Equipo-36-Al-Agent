@@ -19,7 +19,7 @@ class JSONFormatter(logging.Formatter):
             
         return json.dumps(log_record)
 
-def get_logger(name: str):
+def get_logger(name: str, **kwargs):
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = logging.StreamHandler()
@@ -27,4 +27,7 @@ def get_logger(name: str):
         handler.setFormatter(formatter)
         logger.addHandler(handler)
         logger.setLevel(logging.INFO)
+        
+    if kwargs:
+        return logging.LoggerAdapter(logger, kwargs)
     return logger
