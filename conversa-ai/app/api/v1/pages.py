@@ -6,6 +6,7 @@ from fastapi.templating import Jinja2Templates
 from langchain_core.messages import HumanMessage, AIMessage
 
 from app.modules.agent.graph import agent_app
+from app.modules.agent.db_service import DBService
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -21,9 +22,12 @@ async def landing(request: Request):
 async def chat_full(request: Request):
     return templates.TemplateResponse("pages/chat_full.html", {"request": request, "session_id": str(uuid.uuid4())})
 
-@router.websocket("/api/v1/pages/ws/{session_id}")
-async def websocket_endpoint(websocket: WebSocket, session_id: str):
+@router.websocket("/api/v1/pages/ws/{client_session_id}")
+async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
     await websocket.accept()
+    
+    # Obtener IDs reales de la base de datos para no romper Foreign Keys
+    user_id, session_id = await DBService.get_or_create_user_and_session("demo_user")
     
     if session_id not in session_store:
         session_store[session_id] = []
@@ -50,9 +54,6 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
             # Agregar a historial
             session_store[session_id].append(HumanMessage(content=user_message))
             
-            # Usar el UUID de la DB de mock
-            user_id = "00000000-0000-0000-0000-000000000001"
-            
             # Prepare state for LangGraph
             state = {
                 "messages": session_store[session_id].copy(),
@@ -61,7 +62,7 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
                 "channel_id": 1,
                 "current_node": "supervisor_node",
                 "retry_count": 0,
-                "is_authenticated": True, # Forzamos auth para el MVP (o False si queremos testear step-up)
+                "is_authenticated": True, # Forzamos auth para el MVP
                 "context": ""
             }
             
