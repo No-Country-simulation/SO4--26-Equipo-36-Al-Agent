@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     # AI & NLP (Groq & LangChain)
     GROQ_API_KEY: str = ""
-    LLM_MODEL_NAME: str = "llama-3.1-70b-versatile"
+    LLM_MODEL_NAME: str = "llama-3.3-70b-versatile"
     CEREBRAS_API_KEY: str = ""
     CEREBRAS_MODEL_NAME: str = "llama3.1-8b"
 
