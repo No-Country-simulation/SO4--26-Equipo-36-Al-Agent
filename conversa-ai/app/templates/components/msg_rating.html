@@ -1,0 +1,81 @@
+<!-- Session Rating Widget (Stars 1-5) - Neo-Brutalista -->
+<div id="session-rating-widget" class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
+    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SISTEMA ]</span>
+    <div class="brutal-box bg-transparent text-white border-brand-lime p-6 w-fit max-w-[90%]">
+        <p class="text-sm font-bold uppercase tracking-wider mb-4 text-brand-lime">¿Cómo calificarías esta sesión?</p>
+        <div id="star-container" class="flex gap-2 mb-4">
+            {% for i in range(1, 6) %}
+            <button
+                class="star-btn w-10 h-10 brutal-box bg-brand-obsidian border-brand-border text-gray-500 hover:bg-brand-lime hover:text-black hover:border-brand-obsidian transition-all flex items-center justify-center text-lg font-bold cursor-pointer"
+                data-rating="{{ i }}"
+                onclick="selectRating({{ i }})"
+            >
+                {{ i }}
+            </button>
+            {% endfor %}
+        </div>
+        <div id="rating-comment-area" class="hidden">
+            <textarea
+                id="rating-comment"
+                placeholder="Comentario opcional..."
+                class="w-full bg-brand-obsidian text-white border-2 border-brand-border p-3 text-sm font-mono focus:outline-none focus:border-brand-lime resize-none h-16"
+            ></textarea>
+        </div>
+        <button
+            id="submit-rating-btn"
+            class="brutal-btn w-full h-10 mt-3 flex items-center justify-center text-sm font-bold uppercase tracking-wider opacity-50 pointer-events-none"
+            onclick="submitSessionRating()"
+        >
+            Enviar Calificación
+        </button>
+    </div>
+</div>
+
+<script>
+    let selectedRating = 0;
+
+    function selectRating(rating) {
+        selectedRating = rating;
+        const buttons = document.querySelectorAll('.star-btn');
+        buttons.forEach(btn => {
+            const val = parseInt(btn.getAttribute('data-rating'));
+            if (val <= rating) {
+                btn.classList.add('bg-brand-lime', 'text-black', 'border-brand-obsidian');
+                btn.classList.remove('bg-brand-obsidian', 'text-gray-500', 'border-brand-border');
+            } else {
+                btn.classList.remove('bg-brand-lime', 'text-black', 'border-brand-obsidian');
+                btn.classList.add('bg-brand-obsidian', 'text-gray-500', 'border-brand-border');
+            }
+        });
+        // Show comment area and enable submit
+        document.getElementById('rating-comment-area').classList.remove('hidden');
+        const submitBtn = document.getElementById('submit-rating-btn');
+        submitBtn.classList.remove('opacity-50', 'pointer-events-none');
+    }
+
+    function submitSessionRating() {
+        if (selectedRating === 0) return;
+        const comment = document.getElementById('rating-comment').value || '';
+        const sessionId = document.body.getAttribute('data-session-id') || '';
+
+        fetch('/api/v1/agent/session-rating', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                session_id: sessionId,
+                rating: selectedRating,
+                comment: comment
+            })
+        }).then(res => {
+            const widget = document.getElementById('session-rating-widget');
+            if (widget) {
+                widget.innerHTML = `
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SISTEMA ]</span>
+                    <div class="brutal-box bg-transparent text-brand-lime border-brand-lime p-4 w-fit max-w-[85%] text-sm">
+                        Gracias por tu calificación. Tu feedback nos ayuda a mejorar el servicio.
+                    </div>
+                `;
+            }
+        });
+    }
+</script>

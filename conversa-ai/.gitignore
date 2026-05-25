@@ -65,3 +65,6 @@ docker-compose.override.yml
 *.log
 *.sqlite
 *.db
+
+# Personal / Sensitive Data (NEVER commit)
+scripts/seed_personal_data.py

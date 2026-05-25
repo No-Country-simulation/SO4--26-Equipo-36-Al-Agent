@@ -163,7 +163,7 @@
     <script src="/static/js/htmx.min.js"></script>
     <script src="/static/js/ws.js"></script>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col" data-session-id="{{ session_id | default('') }}">
 
     <!-- Notification Audio -->
     <audio id="notification-sound" preload="auto">
@@ -174,34 +174,21 @@
     {% block content %}{% endblock %}
 
     <script>
-        // Auto scroll to bottom of chat
+        // Auto scroll to bottom of chat and play notification on bot response
         document.body.addEventListener('htmx:wsAfterMessage', function(e) {
             const chatHistory = document.getElementById('chat-history');
             if(chatHistory) {
                 chatHistory.scrollTop = chatHistory.scrollHeight;
             }
             
-            // Clear input if this was a response to user sending a message
-            // Only clear if the user actually sent something
-            const input = document.getElementById('user-message-input');
             if (e.detail && e.detail.message) {
-                // Determine if this is a response from the bot
                 if (e.detail.message.includes('id="response-')) {
-                    // It's a bot response, play the notification sound
                     const sound = document.getElementById('notification-sound');
                     if (sound) {
-                        sound.volume = 0.3; // subtle volume
+                        sound.volume = 0.3;
                         sound.play().catch(e => console.log('Audio autoplay prevented'));
                     }
                 }
-            }
-        });
-        
-        // Listen to form submit to clear the input immediately
-        document.body.addEventListener('htmx:wsBeforeMessage', function(e) {
-            const input = document.getElementById('user-message-input');
-            if(input && e.detail.elt.id === 'chat-form') {
-                setTimeout(() => { input.value = ''; }, 10);
             }
         });
     </script>

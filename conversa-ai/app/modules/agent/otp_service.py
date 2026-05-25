@@ -1,61 +1,75 @@
+"""
+Servicio para gestionar la Autenticación de Doble Factor (OTP).
+Genera códigos reales, los persiste en DB y los envía por email.
+"""
+
 import random
 import time
-from typing import Dict, Tuple
+from typing import Tuple
 
+from app.core.email_service import EmailService
 from app.core.logging import get_logger
+from app.modules.agent.db_service import DBService
 
 logger = get_logger(__name__)
 
-# En un entorno real, esto se guardaría en Redis con un TTL de 5 minutos
-# Formato: { "user_id": ("123456", timestamp_expiracion, intentos_fallidos) }
-_otp_store: Dict[str, Tuple[str, float, int]] = {}
-
-OTP_TTL_SECONDS = 300 # 5 minutos
+OTP_TTL_SECONDS = 300  # 5 minutos
 MAX_ATTEMPTS = 3
+
 
 class OTPService:
     """
     Servicio para gestionar la Autenticación de Doble Factor (OTP).
+    Genera códigos, los envía por email real y los valida contra la DB.
     """
-    
-    @staticmethod
-    def generate_and_send_otp(user_id: str, phone_number: str) -> bool:
-        """
-        Genera un código de 6 dígitos y simula el envío por WhatsApp.
-        """
-        code = str(random.randint(100000, 999999))
-        expiration = time.time() + OTP_TTL_SECONDS
-        
-        _otp_store[user_id] = (code, expiration, 0)
-        
-        # Simulación de envío por WhatsApp
-        logger.info(f"[SIMULACIÓN WHATSAPP] Enviando OTP {code} al número {phone_number}")
-        return True
 
     @staticmethod
-    def validate_otp(user_id: str, code: str) -> Tuple[bool, str]:
+    async def generate_and_send_otp(user_id: str, email: str, user_name: str = "") -> bool:
         """
-        Valida el código ingresado por el usuario.
+        Genera un código de 6 dígitos, lo persiste en DB y lo envía por email real.
+        """
+        code = str(random.randint(100000, 999999))
+
+        # Persistir en DB
+        await DBService.create_otp_challenge(
+            user_id=user_id,
+            code=code,
+            email=email,
+            ttl_seconds=OTP_TTL_SECONDS
+        )
+
+        # Enviar por email real
+        success = await EmailService.send_otp_email(
+            to_email=email,
+            otp_code=code,
+            user_name=user_name
+        )
+
+        if success:
+            logger.info(f"OTP generado y enviado a {email} para user_id={user_id}")
+        else:
+            logger.error(f"Fallo al enviar OTP a {email}")
+
+        return success
+
+    @staticmethod
+    async def validate_otp(user_id: str, code: str) -> Tuple[bool, str]:
+        """
+        Valida el código ingresado por el usuario contra la DB.
         Retorna (es_valido, mensaje_informativo).
         """
-        if user_id not in _otp_store:
-            return False, "No hay ningún código pendiente de validación o ya expiró."
-            
-        stored_code, expiration, attempts = _otp_store[user_id]
-        
-        if time.time() > expiration:
-            del _otp_store[user_id]
-            return False, "El código ha expirado. Por favor, solicitá uno nuevo."
-            
-        if stored_code != code.strip():
-            attempts += 1
-            if attempts >= MAX_ATTEMPTS:
-                del _otp_store[user_id]
-                return False, "Superaste el límite de intentos. Operación cancelada por seguridad."
-            
-            _otp_store[user_id] = (stored_code, expiration, attempts)
-            return False, f"Código incorrecto. Te quedan {MAX_ATTEMPTS - attempts} intentos."
-            
-        # Validación exitosa
-        del _otp_store[user_id]
-        return True, "Validación exitosa."
+        result = await DBService.validate_otp_challenge(user_id, code.strip())
+
+        if result["status"] == "valid":
+            return True, "Identidad verificada correctamente."
+        elif result["status"] == "expired":
+            return False, "El código ha expirado. Por favor, solicitá uno nuevo ingresando tu email."
+        elif result["status"] == "invalid_code":
+            remaining = MAX_ATTEMPTS - result.get("attempts", 0)
+            if remaining <= 0:
+                return False, "Superaste el límite de intentos. Por seguridad, la operación fue cancelada. Intentá de nuevo más tarde."
+            return False, f"Código incorrecto. Te quedan {remaining} intentos."
+        elif result["status"] == "max_attempts":
+            return False, "Superaste el límite de intentos. Por seguridad, la operación fue cancelada."
+        else:
+            return False, "No hay ningún código pendiente de validación. Ingresá tu email para recibir uno nuevo."

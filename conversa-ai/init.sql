@@ -93,6 +93,9 @@ CREATE TABLE agent_core.users (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     external_id VARCHAR(100) NOT NULL, 
     channel_id INTEGER NOT NULL REFERENCES agent_core.cat_channels(channel_id),
+    full_name VARCHAR(200),
+    email VARCHAR(150),
+    phone VARCHAR(30),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT unq_user_per_channel UNIQUE (external_id, channel_id)
 );
@@ -143,10 +146,33 @@ CREATE TABLE agent_core.feedback (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Tabla de desafíos OTP para autenticación de doble factor
+CREATE TABLE agent_core.otp_challenges (
+    otp_id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES agent_core.users(user_id) ON DELETE CASCADE,
+    code VARCHAR(6) NOT NULL,
+    email_sent_to VARCHAR(150),
+    attempts INTEGER DEFAULT 0,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tabla de rating de estrellas (1-5) por sesión completa
+CREATE TABLE agent_core.session_ratings (
+    rating_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id UUID NOT NULL REFERENCES agent_core.sessions(session_id) ON DELETE CASCADE,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Índices Operativos (OLTP)
 CREATE INDEX idx_sessions_user ON agent_core.sessions(user_id);
 CREATE INDEX idx_sessions_status ON agent_core.sessions(status_id);
 CREATE INDEX idx_messages_session ON agent_core.messages(session_id);
+CREATE INDEX idx_users_email ON agent_core.users(email);
+CREATE INDEX idx_otp_user ON agent_core.otp_challenges(user_id);
 
 -- 2. Esquema de simulación de la empresa fintech (fintech_mock)
 -- Catálogos de la Fintech

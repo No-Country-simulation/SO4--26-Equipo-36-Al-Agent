@@ -43,8 +43,21 @@
         <div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal">
             <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ CONVERSA ]</span>
             <div class="brutal-box bg-transparent text-white border-brand-border p-4 w-fit max-w-[85%] text-sm md:text-base leading-relaxed">
-                Sistema operativo inicializado. Soy tu agente financiero estructurado. Ingresa una consulta o directiva para proceder.
+                ¡Hola! Soy el asistente virtual de Conversa Pay. Puedo ayudarte con consultas sobre productos, inversiones, tarjetas, comisiones, saldos y más. ¿En qué puedo asistirte hoy?
             </div>
+        </div>
+        
+        <!-- Quick Reply Suggestions -->
+        <div id="quick-replies" class="flex flex-wrap gap-2 pl-1 animate-reveal" style="animation-delay: 0.3s;">
+            <button class="quick-reply-btn brutal-box bg-brand-obsidian text-brand-lime border-brand-border px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-brand-lime hover:text-black transition-colors cursor-pointer" onclick="sendQuickReply(this, '¿Cuáles son los límites de transferencia?')">
+                Límites de transferencia
+            </button>
+            <button class="quick-reply-btn brutal-box bg-brand-obsidian text-brand-lime border-brand-border px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-brand-lime hover:text-black transition-colors cursor-pointer" onclick="sendQuickReply(this, '¿Qué tipos de cuenta ofrecen?')">
+                Tipos de cuenta
+            </button>
+            <button class="quick-reply-btn brutal-box bg-brand-obsidian text-brand-lime border-brand-border px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-brand-lime hover:text-black transition-colors cursor-pointer" onclick="sendQuickReply(this, '¿Cómo funciona el fondo de inversión?')">
+                Inversiones
+            </button>
         </div>
         
         <!-- We will append elements here dynamically via WS -->
@@ -59,7 +72,7 @@
                     type="text" 
                     id="user-message-input"
                     name="user_message" 
-                    placeholder="Escriba su comando..." 
+                    placeholder="Escriba su consulta..." 
                     class="input w-full bg-brand-obsidian text-white border-2 border-brand-border border-r-0 rounded-none focus:outline-none focus:border-brand-lime font-mono text-sm h-14"
                     autocomplete="off"
                     required
@@ -71,3 +84,77 @@
         </form>
     </div>
 </div>
+
+<script>
+    // === Input Clear Fix ===
+    // Listen for HTMX WebSocket send events and clear the input after sending
+    document.addEventListener('htmx:wsBeforeSend', function(event) {
+        setTimeout(function() {
+            const input = document.getElementById('user-message-input');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }, 50);
+    });
+
+    // === Quick Reply Handler ===
+    function sendQuickReply(btn, message) {
+        const input = document.getElementById('user-message-input');
+        if (input) {
+            input.value = message;
+            // Trigger form submission
+            const form = document.getElementById('chat-form');
+            if (form) {
+                // Set value and dispatch input event for HTMX
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                form.dispatchEvent(new Event('submit', { bubbles: true }));
+            }
+        }
+        // Remove quick replies after selection
+        const container = document.getElementById('quick-replies');
+        if (container) container.remove();
+    }
+
+    // === Auto-scroll to Bottom ===
+    const chatHistoryObserver = new MutationObserver(function(mutations) {
+        const chatHistory = document.getElementById('chat-history');
+        if (chatHistory) {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+    });
+    const chatHistory = document.getElementById('chat-history');
+    if (chatHistory) {
+        chatHistoryObserver.observe(chatHistory, { childList: true, subtree: true });
+    }
+
+    // === Session Timeout (5 minutes inactivity) ===
+    let inactivityTimer = null;
+    const TIMEOUT_MS = 300000; // 5 minutes
+
+    function resetInactivityTimer() {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+        inactivityTimer = setTimeout(function() {
+            // Show timeout message (server will handle the actual session close)
+            const chatHistory = document.getElementById('chat-history');
+            if (chatHistory) {
+                const timeoutMsg = document.createElement('div');
+                timeoutMsg.className = 'chat chat-start flex flex-col gap-1 items-start w-full animate-reveal';
+                timeoutMsg.innerHTML = `
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SISTEMA ]</span>
+                    <div class="brutal-box bg-transparent text-yellow-400 border-yellow-600 p-4 w-fit max-w-[85%] text-sm">
+                        La sesión fue cerrada por inactividad. Podés iniciar una nueva sesión cuando quieras.
+                    </div>
+                `;
+                const anchor = document.getElementById('chat-end-anchor');
+                chatHistory.insertBefore(timeoutMsg, anchor);
+            }
+        }, TIMEOUT_MS);
+    }
+
+    // Reset timer on any user interaction
+    document.addEventListener('htmx:wsBeforeSend', resetInactivityTimer);
+    document.addEventListener('keypress', resetInactivityTimer);
+    document.addEventListener('click', resetInactivityTimer);
+    resetInactivityTimer(); // Start on page load
+</script>

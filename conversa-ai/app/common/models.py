@@ -105,11 +105,15 @@ class User(Base):
                      server_default=func.uuid_generate_v4())
     external_id = Column(String(100), nullable=False)
     channel_id = Column(Integer, ForeignKey("agent_core.cat_channels.channel_id"), nullable=False)
+    full_name = Column(String(200))
+    email = Column(String(150))
+    phone = Column(String(30))
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
 
     # Relaciones
     channel = relationship("CatChannel", back_populates="users")
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
+    otp_challenges = relationship("OTPChallenge", back_populates="user", cascade="all, delete-orphan")
 
 
 class Session(Base):
@@ -189,12 +193,50 @@ class Feedback(Base):
     message_id = Column(UUID(as_uuid=True),
                         ForeignKey("agent_core.messages.message_id", ondelete="CASCADE"),
                         nullable=False)
-    rating = Column(Integer, nullable=False)  # CHECK (rating IN (1, -1))
+    rating = Column(Integer, nullable=False)  # 1 = thumbs up, -1 = thumbs down
     comment = Column(Text)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
 
     # Relaciones
     message = relationship("Message", back_populates="feedback")
+
+
+class OTPChallenge(Base):
+    """Desafíos OTP para autenticación de doble factor."""
+    __tablename__ = "otp_challenges"
+    __table_args__ = {"schema": "agent_core"}
+
+    otp_id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(UUID(as_uuid=True),
+                     ForeignKey("agent_core.users.user_id", ondelete="CASCADE"),
+                     nullable=False)
+    code = Column(String(6), nullable=False)
+    email_sent_to = Column(String(150))
+    attempts = Column(Integer, default=0)
+    expires_at = Column(TIMESTAMP(timezone=True), nullable=False)
+    is_used = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
+
+    # Relaciones
+    user = relationship("User", back_populates="otp_challenges")
+
+
+class SessionRating(Base):
+    """Rating de estrellas (1-5) por sesión completa."""
+    __tablename__ = "session_ratings"
+    __table_args__ = {"schema": "agent_core"}
+
+    rating_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4,
+                       server_default=func.uuid_generate_v4())
+    session_id = Column(UUID(as_uuid=True),
+                        ForeignKey("agent_core.sessions.session_id", ondelete="CASCADE"),
+                        nullable=False)
+    rating = Column(Integer, nullable=False)  # CHECK (rating BETWEEN 1 AND 5)
+    comment = Column(Text)
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.current_timestamp())
+
+    # Relaciones
+    session = relationship("Session")
 
 # 2. ESQUEMA: fintech_mock (Simulación de operaciones de la fintech)
 class CatAccountType(Base):

@@ -43,14 +43,22 @@ class Settings(BaseSettings):
     LANGCHAIN_API_KEY: str = ""
     LANGCHAIN_PROJECT: str = "conversa-ai-project"
 
-
-
     # ChromaDB
     CHROMA_HOST: str = "chromadb"
     CHROMA_PORT: int = 8000
 
     # Security
     SECRET_KEY: str = "change-me-in-production"
+
+    # SMTP (Email OTP)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = ""
+
+    # Session Management
+    SESSION_TIMEOUT_SECONDS: int = 300  # 5 minutos de inactividad
 
     @property
     def async_database_url(self) -> str:
