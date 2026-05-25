@@ -24,6 +24,7 @@ numpy<2.0.0
 langchain-core
 langchain-groq
 langchain-cerebras
+langchain-text-splitters
 langgraph
 langsmith
 
