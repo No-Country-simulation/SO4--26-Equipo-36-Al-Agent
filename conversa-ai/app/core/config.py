@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     # AI & NLP (Groq & LangChain)
     GROQ_API_KEY: str = ""
     LLM_MODEL_NAME: str = "llama3-70b-8192"
+    CEREBRAS_API_KEY: str = ""
+    CEREBRAS_MODEL_NAME: str = "llama3.1-8b"
 
     # Observability (LangSmith)
     LANGCHAIN_TRACING_V2: bool = True
