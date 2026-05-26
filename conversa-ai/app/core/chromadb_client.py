@@ -1,6 +1,4 @@
 import chromadb
-from chromadb.config import Settings as ChromaSettings
-from chromadb.utils import embedding_functions
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -12,6 +10,7 @@ class ChromaDBClient:
     """
     Cliente para interactuar con ChromaDB Server vía HTTP.
     Gestiona colecciones separadas para conocimiento global, Q2Q index y memoria de usuario.
+    Compatible con ChromaDB Server v1.0.0+.
     """
     _instance = None
 
@@ -22,17 +21,14 @@ class ChromaDBClient:
         return cls._instance
 
     def _initialize(self):
-        """Inicializa la conexión HTTP a ChromaDB y el modelo de embeddings."""
+        """Inicializa la conexión HTTP a ChromaDB."""
         try:
             self.client = chromadb.HttpClient(
                 host=settings.CHROMA_HOST,
                 port=settings.CHROMA_PORT,
-                settings=ChromaSettings(allow_reset=True, anonymized_telemetry=False)
             )
-            # Usar sentence-transformers para embeddings multilenguaje (español/portugués)
-            self.embedding_function = embedding_functions.SentenceTransformerEmbeddingFunction(
-                model_name="paraphrase-multilingual-MiniLM-L12-v2"
-            )
+            # Verificar conectividad
+            self.client.heartbeat()
             logger.info(f"Conectado a ChromaDB en {settings.CHROMA_HOST}:{settings.CHROMA_PORT}")
         except Exception as e:
             logger.error(f"Error conectando a ChromaDB: {e}")
@@ -43,10 +39,7 @@ class ChromaDBClient:
         if not self.client:
             return None
         try:
-            return self.client.get_or_create_collection(
-                name=name,
-                embedding_function=self.embedding_function
-            )
+            return self.client.get_or_create_collection(name=name)
         except Exception as e:
             logger.error(f"Error obteniendo colección {name}: {e}")
             return None

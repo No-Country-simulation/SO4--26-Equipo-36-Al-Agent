@@ -52,8 +52,9 @@ def sanitize_for_html(text: str) -> str:
 async def landing(request: Request):
     """Renderiza la landing page con un session_id único."""
     return templates.TemplateResponse(
-        "pages/landing.html",
-        {"request": request, "session_id": str(uuid.uuid4())}
+        request=request,
+        name="pages/landing.html",
+        context={"session_id": str(uuid.uuid4())}
     )
 
 
@@ -61,8 +62,9 @@ async def landing(request: Request):
 async def chat_full(request: Request):
     """Renderiza la vista de chat a pantalla completa."""
     return templates.TemplateResponse(
-        "pages/chat_full.html",
-        {"request": request, "session_id": str(uuid.uuid4())}
+        request=request,
+        name="pages/chat_full.html",
+        context={"session_id": str(uuid.uuid4())}
     )
 
 

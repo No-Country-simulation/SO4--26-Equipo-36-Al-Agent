@@ -106,11 +106,12 @@ async def seed_database():
             await session.execute(text("DELETE FROM fintech_mock.cards"))
             await session.execute(text("DELETE FROM fintech_mock.accounts"))
             # Limpiar usuarios que vamos a re-crear (excepto los que tienen sesiones activas)
+            external_ids = [u["external_id"] for u in all_users]
             await session.execute(text("""
                 DELETE FROM agent_core.users 
-                WHERE external_id IN :ids
+                WHERE external_id = ANY(:ids)
                 AND user_id NOT IN (SELECT user_id FROM agent_core.sessions)
-            """), {"ids": tuple(u["external_id"] for u in all_users)})
+            """), {"ids": external_ids})
             await session.commit()
 
         created_user_ids = []
