@@ -1,20 +1,51 @@
 <!-- Widget de Calificación de 5 Estrellas -->
 <div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SUCURSAL ]</span>
+    <style>
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            gap: 0.25rem;
+        }
+        .star-rating input {
+            display: none;
+        }
+        .star-rating label {
+            cursor: pointer;
+            color: #6b7280; /* text-gray-500 */
+            font-size: 2rem;
+            transition: color 0.2s, transform 0.2s;
+        }
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: #facc15; /* text-yellow-400 */
+            transform: scale(1.2);
+        }
+        .star-rating input:checked ~ label {
+            color: #facc15;
+        }
+    </style>
     <div id="session-rating-container" class="brutal-box bg-brand-obsidian border-brand-border p-4 w-fit flex flex-col gap-3">
         <p class="text-sm font-bold text-white uppercase tracking-wider">¿Cómo calificarías tu experiencia?</p>
-        <div class="flex gap-2">
-            {% for i in range(1, 6) %}
-            <button class="text-2xl hover:scale-125 transition-transform text-gray-500 hover:text-yellow-400 focus:text-yellow-400"
-                    hx-post="/api/v1/agent/session-rating"
-                    hx-vals='{"session_id": "{{ session_id }}", "rating": {{ i }}}'
-                    hx-target="#session-rating-container"
-                    hx-swap="innerHTML"
-                    title="{{ i }} estrella{% if i > 1 %}s{% endif %}">
-                ★
+        <form hx-post="/api/v1/agent/session-rating" hx-target="#session-rating-container" hx-swap="innerHTML" class="flex flex-col gap-3">
+            <input type="hidden" name="session_id" value="{{ session_id }}">
+            <div class="star-rating">
+                <input type="radio" id="star5" name="rating" value="5" required />
+                <label for="star5" title="5 estrellas">★</label>
+                <input type="radio" id="star4" name="rating" value="4" />
+                <label for="star4" title="4 estrellas">★</label>
+                <input type="radio" id="star3" name="rating" value="3" />
+                <label for="star3" title="3 estrellas">★</label>
+                <input type="radio" id="star2" name="rating" value="2" />
+                <label for="star2" title="2 estrellas">★</label>
+                <input type="radio" id="star1" name="rating" value="1" />
+                <label for="star1" title="1 estrella">★</label>
+            </div>
+            <button type="submit" class="brutal-btn bg-brand-lime text-black border-2 border-brand-obsidian font-bold text-xs uppercase px-4 py-2 hover:bg-white transition-colors">
+                Enviar Calificación
             </button>
-            {% endfor %}
-        </div>
+        </form>
     </div>
 </div>
 

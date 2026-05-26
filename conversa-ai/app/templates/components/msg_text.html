@@ -8,7 +8,7 @@
 </div>
 {% else %}
 <!-- Assistant Message -->
-<div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
+<div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="{{ swap_target | default('beforeend:#chat-history') }}">
     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ CONVERSA ]</span>
     <div class="brutal-box bg-transparent text-white border-brand-border p-4 w-fit max-w-[85%] text-sm md:text-base leading-relaxed" {% if msg_id %}id="response-{{ msg_id }}"{% endif %}>
         {{ content | safe }}
