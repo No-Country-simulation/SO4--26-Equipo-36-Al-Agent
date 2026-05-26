@@ -213,7 +213,12 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
 
             # Si la sesión finalizó semánticamente, enviar widget de rating
             if final_state.get("is_finished"):
-                rating_html = templates.get_template("components/session_rating_widget.html").render({"session_id": session_id})
+                try:
+                    await DBService.close_session(session_id)
+                except Exception as e:
+                    logger.error(f"Error al cerrar la sesión semánticamente: {e}")
+                    
+                rating_html = templates.get_template("components/session_rating_widget.html").render({"session_id": client_session_id})
                 await websocket.send_text(rating_html)
 
     except WebSocketDisconnect:
