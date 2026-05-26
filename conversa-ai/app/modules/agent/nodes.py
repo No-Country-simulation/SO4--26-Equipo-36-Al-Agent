@@ -5,6 +5,7 @@ Cada nodo es una función async que recibe el AgentState y retorna un dict parci
 
 import re
 import random
+import asyncio
 from typing import Dict, Any
 
 from langchain_core.messages import HumanMessage, AIMessage
@@ -136,7 +137,8 @@ async def rag_node(state: AgentState) -> Dict[str, Any]:
     # 1. Q2Q Search — Buscar preguntas similares
     if q2q_collection:
         try:
-            q2q_results = q2q_collection.query(
+            q2q_results = await asyncio.to_thread(
+                q2q_collection.query,
                 query_texts=[user_message],
                 n_results=5
             )
@@ -153,7 +155,8 @@ async def rag_node(state: AgentState) -> Dict[str, Any]:
     # 2. Dense Search — Buscar chunks directamente
     if kb_collection:
         try:
-            dense_results = kb_collection.query(
+            dense_results = await asyncio.to_thread(
+                kb_collection.query,
                 query_texts=[user_message],
                 n_results=5
             )

@@ -9,6 +9,7 @@ Implementa la arquitectura avanzada de memoria:
 import uuid
 import json
 import math
+import asyncio
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
 
@@ -99,7 +100,8 @@ class MemoryService:
 
         # Buscar memorias similares para este usuario con la misma categoría
         try:
-            results = collection.query(
+            results = await asyncio.to_thread(
+                collection.query,
                 query_texts=[fact_text],
                 n_results=3,
                 where={"user_id": user_id}
@@ -132,7 +134,8 @@ class MemoryService:
             "updated_at": now_iso,
         }
 
-        collection.upsert(
+        await asyncio.to_thread(
+            collection.upsert,
             documents=[fact_text],
             metadatas=[metadata],
             ids=[memory_id]
@@ -153,7 +156,8 @@ class MemoryService:
             return ""
 
         try:
-            results = collection.query(
+            results = await asyncio.to_thread(
+                collection.query,
                 query_texts=[query],
                 n_results=top_k * 2,  # Traemos más para filtrar con decay
                 where={"user_id": user_id}
