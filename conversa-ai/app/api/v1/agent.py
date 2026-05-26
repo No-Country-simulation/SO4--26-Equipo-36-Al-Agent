@@ -109,6 +109,7 @@ async def close_session(
 async def close_session_form(
     request: Request,
     session_id: str = Form(...),
+    timeout: bool = Form(False),
 ):
     """
     Cierra la sesión y retorna el widget HTMX de calificación.
@@ -127,5 +128,5 @@ async def close_session_form(
     return templates.TemplateResponse(
         request=request,
         name="components/session_rating_widget.html",
-        context={"session_id": session_id}
+        context={"session_id": session_id, "timeout": timeout}
     )

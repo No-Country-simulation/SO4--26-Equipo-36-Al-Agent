@@ -147,20 +147,14 @@
     function resetInactivityTimer() {
         if (inactivityTimer) clearTimeout(inactivityTimer);
         inactivityTimer = setTimeout(function() {
-            // Show timeout message (server will handle the actual session close)
-            const chatHistory = document.getElementById('chat-history');
-            if (chatHistory) {
-                const timeoutMsg = document.createElement('div');
-                timeoutMsg.className = 'chat chat-start flex flex-col gap-1 items-start w-full animate-reveal';
-                timeoutMsg.innerHTML = `
-                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SISTEMA ]</span>
-                    <div class="brutal-box bg-transparent text-yellow-400 border-yellow-600 p-4 w-fit max-w-[85%] text-sm">
-                        La sesión fue cerrada por inactividad. Podés iniciar una nueva sesión cuando quieras.
-                    </div>
-                `;
-                const anchor = document.getElementById('chat-end-anchor');
-                chatHistory.insertBefore(timeoutMsg, anchor);
-            }
+            // Unify timeout closure with the backend via HTMX
+            htmx.ajax('POST', '/api/v1/agent/close-session-form', {
+                values: { 
+                    'session_id': '{{ session_id }}',
+                    'timeout': true
+                },
+                swap: 'none' // The response handles OOB swaps
+            });
         }, TIMEOUT_MS);
     }
 

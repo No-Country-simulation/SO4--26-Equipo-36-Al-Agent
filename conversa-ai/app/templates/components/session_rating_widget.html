@@ -1,4 +1,13 @@
 <!-- Widget de Calificación de 5 Estrellas -->
+{% if timeout %}
+<div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
+    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SISTEMA ]</span>
+    <div class="brutal-box bg-transparent text-yellow-400 border-yellow-600 p-4 w-fit max-w-[85%] text-sm">
+        La sesión fue cerrada por inactividad. Podés iniciar una nueva sesión cuando quieras.
+    </div>
+</div>
+{% endif %}
+
 <div class="chat chat-start flex flex-col gap-1 items-start w-full animate-reveal" hx-swap-oob="beforeend:#chat-history">
     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest pl-1">[ SUCURSAL ]</span>
     <style>
