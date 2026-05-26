@@ -21,8 +21,18 @@
         </div>
         
         <!-- Controls for pop-up version -->
-        {% if is_popup %}
         <div class="flex gap-2">
+            <!-- Botón Finalizar Sesión -->
+            <button id="end-session-btn" 
+                    class="btn btn-ghost btn-sm rounded-none text-red-500 hover:text-white hover:bg-red-600 font-bold uppercase tracking-wider text-xs border border-red-500 hover:border-red-600"
+                    hx-post="/api/v1/agent/close-session-form"
+                    hx-vals='{"session_id": "{{ session_id }}"}'
+                    hx-swap="none"
+                    title="Finalizar Chat">
+                FINALIZAR
+            </button>
+            
+            {% if is_popup %}
             <a href="/chat" class="btn btn-ghost btn-sm rounded-none text-gray-400 hover:text-white hover:bg-brand-border" title="Pantalla Completa">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M5 8a1 1 0 011-1h1V6H5a3 3 0 00-3 3v2h2V9a1 1 0 011-1h2V7H6a1 1 0 01-1 1zM15 12a1 1 0 01-1 1h-1v2h2a3 3 0 003-3v-2h-2v1a1 1 0 01-1 1h-2v2h1a1 1 0 011-1zM5 12a1 1 0 01-1 1v1a3 3 0 003 3h2v-2H6a1 1 0 01-1-1v-2H3v2h2zM15 8a1 1 0 011-1v-1a3 3 0 00-3-3h-2v2h1a1 1 0 011 1v2h2V8h-2z" />
@@ -67,20 +77,22 @@
     <!-- Message Input -->
     <div class="p-4 bg-brand-obsidian border-t-2 border-brand-border">
         <form ws-send id="chat-form" class="flex gap-0">
-            <div class="relative flex-1">
-                <input 
-                    type="text" 
-                    id="user-message-input"
-                    name="user_message" 
-                    placeholder="Escriba su consulta..." 
-                    class="input w-full bg-brand-obsidian text-white border-2 border-brand-border border-r-0 rounded-none focus:outline-none focus:border-brand-lime font-mono text-sm h-14"
-                    autocomplete="off"
-                    required
-                />
-            </div>
-            <button type="submit" class="brutal-btn w-16 h-14 flex items-center justify-center shadow-none hover:translate-x-0 hover:translate-y-0 border-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-            </button>
+            <fieldset id="chat-fieldset" class="contents">
+                <div class="relative flex-1">
+                    <input 
+                        type="text" 
+                        id="user-message-input"
+                        name="user_message" 
+                        placeholder="Escriba su consulta..." 
+                        class="input w-full bg-brand-obsidian text-white border-2 border-brand-border border-r-0 rounded-none focus:outline-none focus:border-brand-lime font-mono text-sm h-14"
+                        autocomplete="off"
+                        required
+                    />
+                </div>
+                <button type="submit" class="brutal-btn w-16 h-14 flex items-center justify-center shadow-none hover:translate-x-0 hover:translate-y-0 border-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </button>
+            </fieldset>
         </form>
     </div>
 </div>

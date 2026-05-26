@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Body, Form, Request
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, Optional
@@ -8,6 +9,7 @@ from app.core.logging import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.post("/feedback", tags=["Agent"])
@@ -61,7 +63,10 @@ async def submit_session_rating(
         logger.error(f"Error guardando session rating: {e}")
         raise HTTPException(status_code=500, detail="Error al guardar el rating")
     
-    return {"status": "success", "message": "Rating registrado correctamente"}
+    # Retornar HTML para reemplazar las estrellas
+    return HTMLResponse(
+        content='<p class="text-brand-lime font-bold text-sm uppercase tracking-widest text-center mt-2">¡Gracias por tu calificación!</p>'
+    )
 
 
 @router.post("/close-session", tags=["Agent"])
@@ -81,3 +86,27 @@ async def close_session(
         raise HTTPException(status_code=500, detail="Error al cerrar la sesión")
     
     return {"status": "success", "message": "Sesión cerrada"}
+
+
+@router.post("/close-session-form", tags=["Agent"])
+async def close_session_form(
+    request: Request,
+    session_id: str = Form(...),
+):
+    """
+    Cierra la sesión y retorna el widget HTMX de calificación.
+    """
+    logger.info(f"Cerrando sesión vía UI: {session_id}")
+    
+    from app.modules.agent.db_service import DBService
+    try:
+        await DBService.close_session(session_id)
+    except Exception as e:
+        logger.error(f"Error cerrando sesión: {e}")
+        # Retornamos de todas formas el widget aunque falle el DB update
+    
+    return templates.TemplateResponse(
+        request=request,
+        name="components/session_rating_widget.html",
+        context={"session_id": session_id}
+    )

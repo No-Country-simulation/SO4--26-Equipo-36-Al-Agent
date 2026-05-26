@@ -209,6 +209,11 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             remove_quick = '<div id="quick-replies" hx-swap-oob="outerHTML"></div>'
             await websocket.send_text(remove_quick)
 
+            # Si la sesión finalizó semánticamente, enviar widget de rating
+            if final_state.get("is_finished"):
+                rating_html = templates.get_template("components/session_rating_widget.html").render({"session_id": session_id})
+                await websocket.send_text(rating_html)
+
     except WebSocketDisconnect:
         logger.info(
             f"WebSocket desconectado: session={session_id}",

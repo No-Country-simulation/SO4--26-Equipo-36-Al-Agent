@@ -90,10 +90,20 @@ async def greeting_node(state: AgentState) -> Dict[str, Any]:
     response_text = await llm_service.generate(formatted_messages)
     response_text = sanitize_markdown(response_text)
 
+    is_finished = False
+    if "[FAREWELL]" in response_text:
+        response_text = response_text.replace("[FAREWELL]", "").strip()
+        response_text += " ¿Podrías calificar mi atención?"
+        is_finished = True
+
     new_message = AIMessage(content=response_text)
     await DBService.save_message(state["session_id"], role_id=2, content=response_text)
 
-    return {"messages": [new_message], "current_node": "update_memory_node"}
+    return {
+        "messages": [new_message],
+        "is_finished": is_finished,
+        "current_node": "update_memory_node"
+    }
 
 
 # ============================================================================
