@@ -118,8 +118,11 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             })
             await websocket.send_text(user_html)
 
+            # Crear ID único para este bubble de respuesta (se usa tanto para el typing como para el mensaje final)
+            msg_id = str(uuid.uuid4())
+
             # Send typing indicator
-            typing_html = templates.get_template("components/msg_typing.html").render({})
+            typing_html = templates.get_template("components/msg_typing.html").render({"msg_id": msg_id})
             await websocket.send_text(typing_html)
 
             # Agregar al historial en memoria
@@ -155,8 +158,6 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
                 "user_memories": user_memories,
             }
 
-            # Crear ID único para este bubble de respuesta
-            msg_id = str(uuid.uuid4())
 
             # Ejecutar el grafo
             try:
@@ -185,12 +186,12 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             # Sanitizar markdown para presentación HTML limpia
             final_content_html = sanitize_for_html(final_content)
 
-            # Enviar bubble vacío del asistente reemplazando al typing indicator
+            # Reemplazar in-situ la animación (typing indicator) por la respuesta final
             initial_assistant_html = templates.get_template("components/msg_text.html").render({
                 "role": "assistant",
                 "content": "",
                 "msg_id": msg_id,
-                "swap_target": "outerHTML:#typing-indicator"
+                "is_update": True
             })
             await websocket.send_text(initial_assistant_html)
 
