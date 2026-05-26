@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, Body, Form, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, Optional
@@ -13,8 +13,8 @@ logger = get_logger(__name__)
 @router.post("/feedback", tags=["Agent"])
 async def submit_feedback(
     request: Request,
-    message_id: str = Body(...),
-    rating: int = Body(..., description="1 para pulgar arriba, -1 para pulgar abajo"),
+    message_id: str = Form(...),
+    rating: int = Form(..., description="1 para pulgar arriba, -1 para pulgar abajo"),
 ):
     """
     Recibe la calificación de una respuesta del agente (👍/👎).
@@ -42,9 +42,9 @@ async def submit_feedback(
 @router.post("/session-rating", tags=["Agent"])
 async def submit_session_rating(
     request: Request,
-    session_id: str = Body(...),
-    rating: int = Body(..., description="Rating de 1 a 5 estrellas"),
-    comment: Optional[str] = Body(None),
+    session_id: str = Form(...),
+    rating: int = Form(..., description="Rating de 1 a 5 estrellas"),
+    comment: Optional[str] = Form(None),
 ):
     """
     Recibe el rating de estrellas (1-5) para una sesión finalizada.
@@ -66,7 +66,7 @@ async def submit_session_rating(
 
 @router.post("/close-session", tags=["Agent"])
 async def close_session(
-    session_id: str = Body(...),
+    session_id: str = Form(...),
 ):
     """
     Cierra una sesión manualmente (marca como FINISHED).

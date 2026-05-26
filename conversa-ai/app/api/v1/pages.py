@@ -185,8 +185,8 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             # Sanitizar markdown para presentación HTML limpia
             final_content_html = sanitize_for_html(final_content)
 
-            # Remover typing indicator (reemplazar con nada)
-            remove_typing = '<div id="typing-indicator" hx-swap-oob="outerHTML"></div>'
+            # Remover typing indicator (borrarlo del DOM)
+            remove_typing = '<div id="typing-indicator" hx-swap-oob="delete"></div>'
             await websocket.send_text(remove_typing)
 
             # Enviar bubble vacío del asistente (con msg_id para feedback)
