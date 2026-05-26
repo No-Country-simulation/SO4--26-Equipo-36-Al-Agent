@@ -70,7 +70,10 @@ async def submit_session_rating(
     
     from app.modules.agent.db_service import DBService
     try:
-        await DBService.save_session_rating(session_id, rating, comment)
+        real_session_id = await DBService.get_real_session_id(session_id)
+        if not real_session_id:
+            raise ValueError(f"No real session found for {session_id}")
+        await DBService.save_session_rating(real_session_id, rating, comment)
     except Exception as e:
         logger.error(f"Error guardando session rating: {e}")
         raise HTTPException(status_code=500, detail="Error al guardar el rating")
@@ -92,7 +95,9 @@ async def close_session(
     
     from app.modules.agent.db_service import DBService
     try:
-        await DBService.close_session(session_id)
+        real_session_id = await DBService.get_real_session_id(session_id)
+        if real_session_id:
+            await DBService.close_session(real_session_id)
     except Exception as e:
         logger.error(f"Error cerrando sesión: {e}")
         raise HTTPException(status_code=500, detail="Error al cerrar la sesión")
@@ -112,7 +117,9 @@ async def close_session_form(
     
     from app.modules.agent.db_service import DBService
     try:
-        await DBService.close_session(session_id)
+        real_session_id = await DBService.get_real_session_id(session_id)
+        if real_session_id:
+            await DBService.close_session(real_session_id)
     except Exception as e:
         logger.error(f"Error cerrando sesión: {e}")
         # Retornamos de todas formas el widget aunque falle el DB update

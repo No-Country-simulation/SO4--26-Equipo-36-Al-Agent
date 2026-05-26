@@ -57,11 +57,11 @@ class DBService:
             return str(user.user_id), str(session_obj.session_id)
 
     @staticmethod
-    async def save_message(session_id: str, role_id: int, content: str, tokens_used: int = 0) -> str:
+    async def save_message(session_id: str, role_id: int, content: str, tokens_used: int = 0, message_id: Optional[str] = None) -> str:
         """
         Guarda un mensaje en la tabla agent_core.messages.
         role_id: 1=user, 2=assistant, 3=system
-        Retorna el message_id generado.
+        Retorna el message_id generado o el provisto.
         """
         async with async_session_maker() as db_session:
             message = Message(
@@ -70,10 +70,32 @@ class DBService:
                 content=content,
                 tokens_used=tokens_used
             )
+            if message_id:
+                message.message_id = message_id
             db_session.add(message)
             await db_session.commit()
             await db_session.refresh(message)
             return str(message.message_id)
+
+    @staticmethod
+    async def get_real_session_id(external_id: str) -> Optional[str]:
+        """
+        Busca el session_id real (UUID) basado en el external_id (client_session_id).
+        Retorna el ID de la sesión más reciente o None.
+        """
+        async with async_session_maker() as db_session:
+            stmt = select(User).filter(User.external_id == external_id)
+            result = await db_session.execute(stmt)
+            user = result.scalars().first()
+
+            if not user:
+                return None
+
+            stmt = select(Session).filter(Session.user_id == user.user_id).order_by(Session.start_time.desc())
+            result = await db_session.execute(stmt)
+            sess = result.scalars().first()
+
+            return str(sess.session_id) if sess else None
 
     @staticmethod
     async def save_feedback(message_id: str, rating: int, comment: str = None) -> bool:

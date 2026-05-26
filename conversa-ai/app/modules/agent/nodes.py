@@ -97,7 +97,7 @@ async def greeting_node(state: AgentState) -> Dict[str, Any]:
         is_finished = True
 
     new_message = AIMessage(content=response_text)
-    await DBService.save_message(state["session_id"], role_id=2, content=response_text)
+    await DBService.save_message(state["session_id"], role_id=2, content=response_text, message_id=state.get("ui_msg_id"))
 
     return {
         "messages": [new_message],
@@ -119,7 +119,7 @@ async def out_of_scope_node(state: AgentState) -> Dict[str, Any]:
     response_text = sanitize_markdown(response_text)
 
     new_message = AIMessage(content=response_text)
-    await DBService.save_message(state["session_id"], role_id=2, content=response_text)
+    await DBService.save_message(state["session_id"], role_id=2, content=response_text, message_id=state.get("ui_msg_id"))
 
     return {"messages": [new_message], "current_node": "update_memory_node"}
 
@@ -228,7 +228,7 @@ Usá esta información para personalizar tu respuesta si es relevante."""
     response_text = sanitize_markdown(response_text)
 
     new_message = AIMessage(content=response_text)
-    await DBService.save_message(state["session_id"], role_id=2, content=response_text)
+    await DBService.save_message(state["session_id"], role_id=2, content=response_text, message_id=state.get("ui_msg_id"))
 
     return {"messages": [new_message], "current_node": "gatekeeper_node"}
 
@@ -265,7 +265,7 @@ async def sql_node(state: AgentState) -> Dict[str, Any]:
 
     result = sanitize_markdown(result)
     new_message = AIMessage(content=result)
-    await DBService.save_message(state["session_id"], role_id=2, content=result)
+    await DBService.save_message(state["session_id"], role_id=2, content=result, message_id=state.get("ui_msg_id"))
 
     return {"messages": [new_message], "current_node": "update_memory_node"}
 
@@ -293,7 +293,7 @@ async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
             logger.info(f"OTP validado exitosamente para {user_id}")
             response = "Identidad verificada correctamente. Ahora puedo acceder a tu información financiera. ¿Qué necesitás consultar?"
             new_message = AIMessage(content=response)
-            await DBService.save_message(state["session_id"], role_id=2, content=response)
+            await DBService.save_message(state["session_id"], role_id=2, content=response, message_id=state.get("ui_msg_id"))
             return {
                 "messages": [new_message],
                 "is_authenticated": True,
@@ -301,7 +301,7 @@ async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
             }
         else:
             new_message = AIMessage(content=msg)
-            await DBService.save_message(state["session_id"], role_id=2, content=msg)
+            await DBService.save_message(state["session_id"], role_id=2, content=msg, message_id=state.get("ui_msg_id"))
             return {"messages": [new_message], "current_node": "end"}
 
     # Caso 2: El usuario ingresó un email → buscar y enviar OTP
@@ -313,7 +313,7 @@ async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
             msg = ("No encontramos una cuenta registrada con ese email. "
                    "Si querés, puedo ayudarte con información general sobre nuestros productos y servicios.")
             new_message = AIMessage(content=msg)
-            await DBService.save_message(state["session_id"], role_id=2, content=msg)
+            await DBService.save_message(state["session_id"], role_id=2, content=msg, message_id=state.get("ui_msg_id"))
             return {"messages": [new_message], "current_node": "end"}
 
         # Generar y enviar OTP real
@@ -331,7 +331,7 @@ async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
                    "Por favor, intentá de nuevo en unos minutos.")
 
         new_message = AIMessage(content=msg)
-        await DBService.save_message(state["session_id"], role_id=2, content=msg)
+        await DBService.save_message(state["session_id"], role_id=2, content=msg, message_id=state.get("ui_msg_id"))
         return {
             "messages": [new_message],
             "user_email": email,
@@ -343,7 +343,7 @@ async def step_up_auth_node(state: AgentState) -> Dict[str, Any]:
     msg = ("Para acceder a tu información financiera, necesito verificar tu identidad. "
            "Por favor, ingresá el email con el que te registraste en Conversa Pay:")
     new_message = AIMessage(content=msg)
-    await DBService.save_message(state["session_id"], role_id=2, content=msg)
+    await DBService.save_message(state["session_id"], role_id=2, content=msg, message_id=state.get("ui_msg_id"))
     return {"messages": [new_message], "otp_pending": True, "current_node": "end"}
 
 

@@ -161,6 +161,7 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
                 "last_activity_at": None,
                 "session_rating": None,
                 "user_memories": user_memories,
+                "ui_msg_id": msg_id,
             }
 
 

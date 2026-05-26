@@ -11,6 +11,7 @@ class AgentState(TypedDict):
     user_id: str
     session_id: str
     channel_id: Optional[int]
+    ui_msg_id: Optional[str]
 
     # Variables de control de flujo
     current_node: str
