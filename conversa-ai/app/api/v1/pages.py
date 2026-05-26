@@ -118,12 +118,17 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             })
             await websocket.send_text(user_html)
 
-            # Crear ID único para este bubble de respuesta (se usa tanto para el typing como para el mensaje final)
+            # Crear ID único para este bubble de respuesta
             msg_id = str(uuid.uuid4())
 
-            # Send typing indicator
-            typing_html = templates.get_template("components/msg_typing.html").render({"msg_id": msg_id})
-            await websocket.send_text(typing_html)
+            # Enviar la burbuja del asistente inmediatamente con texto "Consultando..."
+            initial_assistant_html = templates.get_template("components/msg_text.html").render({
+                "role": "assistant",
+                "content": '<span class="text-gray-500 italic animate-pulse tracking-widest text-sm">Consultando...</span>',
+                "msg_id": msg_id,
+                "is_update": False
+            })
+            await websocket.send_text(initial_assistant_html)
 
             # Agregar al historial en memoria
             session_store[session_id].append(HumanMessage(content=user_message))
@@ -186,20 +191,18 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             # Sanitizar markdown para presentación HTML limpia
             final_content_html = sanitize_for_html(final_content)
 
-            # Reemplazar in-situ la animación (typing indicator) por la respuesta final
-            initial_assistant_html = templates.get_template("components/msg_text.html").render({
-                "role": "assistant",
-                "content": "",
-                "msg_id": msg_id,
-                "is_update": True
-            })
-            await websocket.send_text(initial_assistant_html)
-
-            # Efecto Typewriter (streaming artificial)
+            # Efecto Typewriter (streaming artificial sobre la misma burbuja)
             chunk_size = 4
+            first_chunk = True
             for i in range(0, len(final_content_html), chunk_size):
                 chunk = final_content_html[i:i + chunk_size]
-                stream_html = f'<span hx-swap-oob="beforeend:#response-{msg_id}">{chunk}</span>'
+                if first_chunk:
+                    # El primer chunk limpia el texto "Consultando..." usando innerHTML
+                    stream_html = f'<span hx-swap-oob="innerHTML:#response-{msg_id}">{chunk}</span>'
+                    first_chunk = False
+                else:
+                    # Los siguientes chunks agregan el texto usando beforeend
+                    stream_html = f'<span hx-swap-oob="beforeend:#response-{msg_id}">{chunk}</span>'
                 await websocket.send_text(stream_html)
                 await asyncio.sleep(0.012)
 
