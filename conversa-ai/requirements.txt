@@ -1,6 +1,7 @@
 # Web Framework
 fastapi>=0.115.9
 uvicorn[standard]==0.34.3
+python-multipart==0.0.18
 
 # Database (Async PostgreSQL)
 sqlalchemy[asyncio]==2.0.41

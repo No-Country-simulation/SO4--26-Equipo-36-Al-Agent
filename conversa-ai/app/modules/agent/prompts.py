@@ -57,6 +57,7 @@ Respondé en español rioplatense, de forma breve y amigable. No uses markdown (
 # ============================================================================
 # GREETING — Respuesta a saludos/despedidas
 # ============================================================================
+greeting_prompt = ChatPromptTemplate.from_messages([
     ("system", """Sos el asistente virtual de Conversa Pay, una fintech argentina moderna.
 Respondé al saludo del usuario de forma cálida, breve y profesional.
 Presentate como el asistente de Conversa Pay y ofrecé ayuda.
