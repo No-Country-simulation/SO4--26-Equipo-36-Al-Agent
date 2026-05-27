@@ -233,3 +233,25 @@ class DBService:
             db_session.add(session_rating)
             await db_session.commit()
             return True
+
+    @staticmethod
+    async def update_session_language(session_id: str, iso_code: str) -> None:
+        """Actualiza el language_id de la sesión basado en el iso_code detectado."""
+        from app.common.models import CatLanguage
+        async with async_session_maker() as db_session:
+            # Buscar el language_id por iso_code
+            stmt_lang = select(CatLanguage).filter(CatLanguage.iso_code == iso_code)
+            result = await db_session.execute(stmt_lang)
+            lang = result.scalars().first()
+            
+            if lang:
+                stmt_upd = (
+                    update(Session)
+                    .where(Session.session_id == session_id)
+                    .values(language_id=lang.language_id)
+                )
+                await db_session.execute(stmt_upd)
+                await db_session.commit()
+                logger.info(f"Idioma de la sesión {session_id} actualizado a {iso_code}")
+            else:
+                logger.warning(f"No se encontró el idioma con iso_code={iso_code} en cat_languages.")

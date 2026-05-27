@@ -89,6 +89,7 @@
                         required
                     />
                 </div>
+                <input type="hidden" name="browser_lang" id="browser-lang-input">
                 <button type="submit" class="brutal-btn w-16 h-14 flex items-center justify-center shadow-none hover:translate-x-0 hover:translate-y-0 border-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
@@ -98,6 +99,15 @@
 </div>
 
 <script>
+    // === Browser Language ===
+    document.addEventListener("DOMContentLoaded", function() {
+        const langInput = document.getElementById('browser-lang-input');
+        if (langInput) {
+            const lang = navigator.language || navigator.userLanguage || "es";
+            langInput.value = lang.split('-')[0].toLowerCase();
+        }
+    });
+
     // === Input Clear Fix ===
     // Listen for HTMX WebSocket send events and clear the input after sending
     document.addEventListener('htmx:wsBeforeSend', function(event) {

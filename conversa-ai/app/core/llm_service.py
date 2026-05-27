@@ -85,5 +85,27 @@ class LLMService:
         if not response_msg:
             self.logger.error("Todos los proveedores LLM fallaron. Retornando mensaje de contingencia.")
             return "En este momento estoy experimentando dificultades técnicas. Por favor, intentá de nuevo en unos minutos."
-
         return str(response_msg.content)
+
+    @classmethod
+    async def classify_language(cls, user_message: str, browser_lang: str) -> str:
+        """
+        Clasifica el idioma de la conversación basado en el mensaje y el idioma del navegador.
+        Retorna 'es' o 'pt'.
+        """
+        from app.modules.agent.prompts import language_classifier_prompt
+        from langchain_core.messages import HumanMessage
+        
+        prompt = language_classifier_prompt.format(
+            user_message=user_message,
+            browser_lang=browser_lang
+        )
+        
+        # Instanciamos temporalmente sin session/user para no entorpecer los logs principales
+        instance = cls()
+        response = await instance.generate([HumanMessage(content=prompt)])
+        
+        iso_code = response.strip().lower()
+        if iso_code not in ["es", "pt"]:
+            return "es" # Fallback por defecto
+        return iso_code

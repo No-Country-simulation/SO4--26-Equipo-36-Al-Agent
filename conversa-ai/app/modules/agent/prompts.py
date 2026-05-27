@@ -66,9 +66,9 @@ Mencioná brevemente que podés ayudar con: consultas sobre productos, inversion
 Sé breve, no más de 3 oraciones.
 
 REGLA CRÍTICA DE CIERRE DE SESIÓN:
-Si el usuario se está despidiendo explícitamente o agradeciendo con la intención de finalizar la conversación (ej: "chau", "listo gracias", "nos vemos"), tu respuesta DEBE INCLUIR EXACTAMENTE este texto al final: [FAREWELL]
-Por ejemplo: "De nada, fue un gusto ayudarte. ¡Que tengas un buen día! [FAREWELL]"
-Si es un saludo de entrada ("hola", "buen dia"), NO agregues el token."""),
+Si el usuario agradece o se despide ("gracias", "chau", "hasta luego"), pero NO ha confirmado explícitamente que ya no necesita ayuda, DEBES preguntarle amablemente: "¿Te puedo ayudar con algo más?".
+Si y SÓLO SI el usuario indica explícitamente que NO necesita más ayuda (ej: "no gracias", "eso es todo", "nada más", "ninguna otra cosa"), ENTONCES tu respuesta DEBE INCLUIR EXACTAMENTE este texto al final: [FAREWELL]
+Por ejemplo, si dice "no, gracias", respondé: "De nada, fue un gusto ayudarte. ¡Que tengas un buen día! [FAREWELL]\""""),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
@@ -140,4 +140,21 @@ Si hay un hecho relevante, respondé EXACTAMENTE en este formato JSON (sin backt
 {{"categoria": "nombre_categoria", "hecho": "descripción breve del hecho", "entidad": "tema_principal"}}
 
 Si NO hay ningún dato personal o preferencia relevante en este intercambio, respondé exactamente: NULL"""
+)
+
+# ============================================================================
+# LANGUAGE CLASSIFIER — Detección dinámica de idioma
+# ============================================================================
+language_classifier_prompt = PromptTemplate.from_template(
+    """Sos un detector de idiomas experto. Tu tarea es identificar el idioma principal en el que está hablando el usuario.
+Considerá tanto el mensaje del usuario como el idioma detectado por su navegador (Browser Language) como pista, pero dale más peso al mensaje real del usuario.
+
+Mensaje del usuario: {user_message}
+Browser Language (Pista): {browser_lang}
+
+Respondé ESTRICTAMENTE con UNA sola palabra que sea el código ISO del idioma detectado:
+Si es Español, respondé: es
+Si es Portugués, respondé: pt
+
+No agregues ninguna otra palabra, ni puntuación, ni explicación."""
 )

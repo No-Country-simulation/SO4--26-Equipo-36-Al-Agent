@@ -101,12 +101,26 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             try:
                 payload = json.loads(data)
                 user_message = payload.get("user_message", "").strip()
+                browser_lang = payload.get("browser_lang", "es")
                 if not user_message:
                     continue
             except json.JSONDecodeError:
                 user_message = data.strip()
+                browser_lang = "es"
                 if not user_message:
                     continue
+            
+            # Clasificación dinámica de idioma en el primer mensaje
+            if len(session_store.get(session_id, [])) == 0:
+                async def detect_and_update_language(msg: str, b_lang: str, sess_id: str):
+                    try:
+                        from app.core.llm_service import LLMService
+                        iso_code = await LLMService.classify_language(msg, b_lang)
+                        await DBService.update_session_language(sess_id, iso_code)
+                    except Exception as e:
+                        logger.warning(f"Error clasificando idioma: {e}")
+                
+                asyncio.create_task(detect_and_update_language(user_message, browser_lang, session_id))
 
             # Guardar mensaje del usuario en DB
             await DBService.save_message(session_id, role_id=1, content=user_message)
