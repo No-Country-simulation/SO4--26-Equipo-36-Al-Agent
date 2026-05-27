@@ -67,10 +67,10 @@
     </aside>
 
     <!-- Main Chat Area -->
-    <main class="flex-1 flex flex-col min-w-0 relative bg-brand-obsidian">
+    <main class="flex-1 flex flex-col min-w-0 relative bg-brand-obsidian h-full">
         <!-- Chat Core takes full height and width -->
         {% set is_popup = false %}
-        <div class="h-full w-full flex flex-col">
+        <div class="absolute inset-0 flex flex-col w-full h-full" style="flex-direction: column !important; width: 100% !important;">
             {% include 'components/chat_core.html' %}
         </div>
     </main>
