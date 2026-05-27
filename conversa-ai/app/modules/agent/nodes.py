@@ -39,6 +39,8 @@ def sanitize_markdown(text: str) -> str:
     text = re.sub(r'^\s*[-*+]\s+', '• ', text, flags=re.MULTILINE)
     # Eliminar backticks
     text = re.sub(r'`([^`]+)`', r'\1', text)
+    # Eliminar posibles etiquetas HTML generadas por el LLM
+    text = re.sub(r'<[^>]+>', '', text)
     # Limpiar líneas vacías excesivas
     text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
