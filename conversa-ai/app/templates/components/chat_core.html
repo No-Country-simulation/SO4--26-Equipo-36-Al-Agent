@@ -12,7 +12,7 @@
                 </svg>
             </div>
             <div>
-                <h3 class="font-display font-bold text-white text-lg tracking-tight uppercase">Motor Cognitivo</h3>
+                <h3 class="font-display font-bold text-white text-lg tracking-tight uppercase">Conversa AI</h3>
                 <p class="text-xs font-bold text-brand-lime flex items-center gap-1 tracking-widest uppercase">
                     <span class="w-2 h-2 rounded-none bg-brand-lime"></span>
                     En línea
@@ -33,9 +33,13 @@
             </button>
             
             {% if is_popup %}
-            <a href="/chat" class="btn btn-ghost btn-sm rounded-none text-gray-400 hover:text-white hover:bg-brand-border" title="Pantalla Completa">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M5 8a1 1 0 011-1h1V6H5a3 3 0 00-3 3v2h2V9a1 1 0 011-1h2V7H6a1 1 0 01-1 1zM15 12a1 1 0 01-1 1h-1v2h2a3 3 0 003-3v-2h-2v1a1 1 0 01-1 1h-2v2h1a1 1 0 011-1zM5 12a1 1 0 01-1 1v1a3 3 0 003 3h2v-2H6a1 1 0 01-1-1v-2H3v2h2zM15 8a1 1 0 011-1v-1a3 3 0 00-3-3h-2v2h1a1 1 0 011 1v2h2V8h-2z" />
+            <a href="/chat?session_id={{ session_id }}" class="btn btn-ghost btn-sm rounded-none text-gray-400 hover:text-white hover:bg-brand-border" title="Pantalla Completa">
+                <!-- Icono de Expandir (Flechas diagonales) -->
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="9" y1="21" x2="21" y2="3"></line>
+                    <polyline points="9 21 3 21 3 15"></polyline>
+                    <line x1="21" y1="3" x2="3" y2="21"></line>
                 </svg>
             </a>
             <button onclick="document.getElementById('chat-modal').close()" class="btn btn-ghost btn-sm rounded-none text-gray-400 hover:text-white hover:bg-brand-border">
