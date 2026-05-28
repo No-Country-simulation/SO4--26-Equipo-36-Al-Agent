@@ -15,6 +15,7 @@ from app.modules.agent.graph import agent_app
 from app.modules.agent.db_service import DBService
 from app.modules.agent.memory_service import MemoryService
 from app.core.logging import get_logger
+from app.modules.evaluator.etl import run_pipeline
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -231,6 +232,12 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             if final_state.get("is_finished"):
                 try:
                     await DBService.close_session(session_id)
+                    # Disparar pipeline ETL en background para clasificar esta sesión
+                    asyncio.create_task(run_pipeline())
+                    logger.info(
+                        f"Pipeline ETL disparado automáticamente tras cierre de sesión",
+                        extra={"session_id": session_id, "user_id": user_id}
+                    )
                 except Exception as e:
                     logger.error(f"Error al cerrar la sesión semánticamente: {e}")
                     

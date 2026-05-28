@@ -1,39 +1,34 @@
 """
-Genera ~1500 sesiones sintéticas con mensajes en español y portugués.
+Genera ~120 sesiones sintéticas con datos coherentes en OLTP (agent_core) Y OLAP (analytics_warehouse).
 
-Distribuye las sesiones en diferentes escenarios emocionales:
-- Éxito (40%) — conversaciones resueltas positivamente
-- Frustración (30%) — usuarios frustrados, reclamos sin resolución
-- Neutral (20%) — interacciones informativas sin emoción fuerte
-- Abandono (10%) — sesiones muy cortas (<3 mensajes)
+Distribución:
+- Éxito (40%) — POS sentiment, SUCCESS resolution
+- Frustración (25%) — NEG sentiment, FRUSTRATION resolution  
+- Neutral (20%) — NEU sentiment, NEUTRAL resolution
+- Abandono (15%) — NEU sentiment, NEUTRAL resolution, is_abandoned=True
 
-Ejecutar dentro del container:
-    docker exec -it conversa-ai-app python scripts/generate_synthetic_data.py
+Las sesiones se marcan status=4 (COMPLETED) para que el ETL real las ignore.
+El pipeline ETL solo procesará sesiones reales del chatbot (status=2 FINISHED).
+
+Ejecutar: docker exec conversa-ai-app python scripts/generate_synthetic_data.py
 """
-
-import os
-import sys
-import uuid
-import asyncio
-import random
+import os, sys, uuid, asyncio, random
 from datetime import datetime, timedelta, timezone
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
 from sqlalchemy import text
 from app.core.database import async_session_maker
 from app.core.logging import get_logger
 
 logger = get_logger("synthetic_data")
 
-# ═══════════════════════════════════════════════════════════════════════════
-# TEMPLATES DE CONVERSACIONES
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════
+# ESCENARIOS DE CONVERSACIÓN
+# ═══════════════════════════════════════════════════════════════
 
 SCENARIOS_ES = {
     "exito_saldo": {
-        "intent": "consulta_saldo",
-        "tag": None,
+        "intent": "consulta_saldo", "category": "consultas", "tag": None, "sentiment": "POS",
         "messages": [
             ("user", "Hola, quiero ver mi saldo por favor"),
             ("assistant", "¡Hola! Por supuesto, déjame consultar tu saldo."),
@@ -45,8 +40,7 @@ SCENARIOS_ES = {
         ],
     },
     "exito_estado": {
-        "intent": "consulta_estado",
-        "tag": None,
+        "intent": "consulta_estado", "category": "consultas", "tag": None, "sentiment": "POS",
         "messages": [
             ("user", "Necesito saber el estado de mi transferencia"),
             ("assistant", "Claro, ¿podrías darme el número de operación?"),
@@ -56,8 +50,7 @@ SCENARIOS_ES = {
         ],
     },
     "exito_movimientos": {
-        "intent": "consulta_movimientos",
-        "tag": None,
+        "intent": "consulta_movimientos", "category": "consultas", "tag": None, "sentiment": "POS",
         "messages": [
             ("user", "Quiero ver mis últimos movimientos"),
             ("assistant", "Aquí están tus últimos 5 movimientos de tu Caja de Ahorro."),
@@ -68,9 +61,33 @@ SCENARIOS_ES = {
             ("user", "Excelente servicio, gracias!"),
         ],
     },
+    "exito_bloqueo": {
+        "intent": "bloqueo_tarjeta", "category": "operaciones", "tag": None, "sentiment": "POS",
+        "messages": [
+            ("user", "Perdí mi tarjeta, necesito bloquearla urgente"),
+            ("assistant", "Entendido, voy a bloquear tu tarjeta inmediatamente. ¿Los últimos 4 dígitos?"),
+            ("user", "3847"),
+            ("assistant", "Tu tarjeta terminada en 3847 fue bloqueada exitosamente."),
+            ("user", "Gracias, qué rápido!"),
+            ("assistant", "Tu seguridad es prioridad. ¿Querés solicitar una reposición?"),
+            ("user", "Sí, por favor"),
+            ("assistant", "Listo, tu nueva tarjeta llegará en 5-7 días hábiles."),
+        ],
+    },
+    "exito_transferencia": {
+        "intent": "consulta_transferencia", "category": "consultas", "tag": None, "sentiment": "POS",
+        "messages": [
+            ("user", "Necesito hacer una transferencia a otra cuenta"),
+            ("assistant", "Claro, ¿a qué CBU o alias querés transferir?"),
+            ("user", "Al alias juan.perez.mp"),
+            ("assistant", "Perfecto. ¿Qué monto querés transferir?"),
+            ("user", "$15,000"),
+            ("assistant", "Transferencia de $15,000 realizada exitosamente."),
+            ("user", "Genial, muchas gracias!"),
+        ],
+    },
     "frustrado_tarjeta": {
-        "intent": "reclamo_tarjeta",
-        "tag": "reclamo-tarjeta",
+        "intent": "reclamo_tarjeta", "category": "reclamos", "tag": "reclamo-tarjeta", "sentiment": "NEG",
         "messages": [
             ("user", "Mi tarjeta no funciona, no puedo pagar en ningún lado"),
             ("assistant", "Lamento escuchar eso. ¿Podrías indicarme los últimos 4 dígitos?"),
@@ -84,8 +101,7 @@ SCENARIOS_ES = {
         ],
     },
     "frustrado_cobro": {
-        "intent": "reclamo_cobro",
-        "tag": "frustracion-detectada",
+        "intent": "reclamo_cobro", "category": "reclamos", "tag": "frustracion-detectada", "sentiment": "NEG",
         "messages": [
             ("user", "Me cobraron dos veces el servicio de Netflix"),
             ("assistant", "Revisemos tus movimientos. ¿Cuándo fue el cobro?"),
@@ -98,8 +114,7 @@ SCENARIOS_ES = {
         ],
     },
     "frustrado_operador": {
-        "intent": "solicitar_operador",
-        "tag": "bucle-detectado",
+        "intent": "solicitar_operador", "category": "soporte", "tag": "bucle-detectado", "sentiment": "NEG",
         "messages": [
             ("user", "Quiero hablar con una persona real"),
             ("assistant", "Entiendo. ¿Podrías contarme tu consulta para derivarte al área correcta?"),
@@ -110,60 +125,8 @@ SCENARIOS_ES = {
             ("user", "No, estoy harto de este sistema que no sirve para nada"),
         ],
     },
-    "neutral_producto": {
-        "intent": "consulta_producto",
-        "tag": None,
-        "messages": [
-            ("user", "Qué tipos de cuenta ofrecen?"),
-            ("assistant", "Ofrecemos Caja de Ahorro, Cuenta Corriente e Inversiones."),
-            ("user", "Cuáles son las comisiones?"),
-            ("assistant", "La Caja de Ahorro no tiene comisión de mantenimiento. La Cuenta Corriente tiene un costo de $500/mes."),
-            ("user", "Ok, lo voy a pensar"),
-        ],
-    },
-    "neutral_info": {
-        "intent": "consulta_transferencia",
-        "tag": None,
-        "messages": [
-            ("user", "Cuánto tarda una transferencia a otro banco?"),
-            ("assistant", "Las transferencias a otros bancos se acreditan en 24-48hs hábiles."),
-            ("user", "Y si es al mismo banco?"),
-            ("assistant", "En ese caso es instantánea."),
-            ("user", "Entendido, gracias"),
-        ],
-    },
-    "abandono_corto": {
-        "intent": "saludo",
-        "tag": "abandono-neutro",
-        "messages": [
-            ("user", "Hola"),
-            ("assistant", "¡Hola! ¿En qué puedo ayudarte?"),
-        ],
-    },
-    "abandono_pregunta": {
-        "intent": "consulta_estado",
-        "tag": "abandono-neutro",
-        "messages": [
-            ("user", "Mi pedido no llegó"),
-        ],
-    },
-    "exito_bloqueo": {
-        "intent": "bloqueo_tarjeta",
-        "tag": None,
-        "messages": [
-            ("user", "Perdí mi tarjeta, necesito bloquearla urgente"),
-            ("assistant", "Entendido, voy a bloquear tu tarjeta inmediatamente. ¿Los últimos 4 dígitos?"),
-            ("user", "3847"),
-            ("assistant", "Tu tarjeta terminada en 3847 fue bloqueada exitosamente."),
-            ("user", "Gracias, qué rápido!"),
-            ("assistant", "Tu seguridad es prioridad. ¿Querés solicitar una reposición?"),
-            ("user", "Sí, por favor"),
-            ("assistant", "Listo, tu nueva tarjeta llegará en 5-7 días hábiles."),
-        ],
-    },
     "frustrado_cancelacion": {
-        "intent": "cancelacion",
-        "tag": "frustracion-detectada",
+        "intent": "cancelacion", "category": "operaciones", "tag": "frustracion-detectada", "sentiment": "NEG",
         "messages": [
             ("user", "Quiero cancelar mi cuenta, estoy harto del servicio"),
             ("assistant", "Lamento escuchar eso. ¿Podrías contarme qué pasó?"),
@@ -174,12 +137,59 @@ SCENARIOS_ES = {
             ("user", "Otro trámite más... increíble"),
         ],
     },
+    "frustrado_app": {
+        "intent": "reclamo_servicio", "category": "reclamos", "tag": "frustracion-detectada", "sentiment": "NEG",
+        "messages": [
+            ("user", "La app se cayó otra vez, no puedo entrar a mi cuenta"),
+            ("assistant", "Disculpá las molestias. Estamos al tanto del problema."),
+            ("user", "Es la tercera vez esta semana!"),
+            ("assistant", "Entiendo tu frustración. El equipo técnico está trabajando en una solución."),
+            ("user", "Voy a cambiar de banco si sigue así"),
+        ],
+    },
+    "neutral_producto": {
+        "intent": "consulta_producto", "category": "consultas", "tag": None, "sentiment": "NEU",
+        "messages": [
+            ("user", "Qué tipos de cuenta ofrecen?"),
+            ("assistant", "Ofrecemos Caja de Ahorro, Cuenta Corriente e Inversiones."),
+            ("user", "Cuáles son las comisiones?"),
+            ("assistant", "La Caja de Ahorro no tiene comisión. La Cuenta Corriente tiene un costo de $500/mes."),
+            ("user", "Ok, lo voy a pensar"),
+        ],
+    },
+    "neutral_info": {
+        "intent": "consulta_transferencia", "category": "consultas", "tag": None, "sentiment": "NEU",
+        "messages": [
+            ("user", "Cuánto tarda una transferencia a otro banco?"),
+            ("assistant", "Las transferencias a otros bancos se acreditan en 24-48hs hábiles."),
+            ("user", "Y si es al mismo banco?"),
+            ("assistant", "En ese caso es instantánea."),
+            ("user", "Entendido, gracias"),
+        ],
+    },
+    "neutral_horarios": {
+        "intent": "consulta_producto", "category": "consultas", "tag": None, "sentiment": "NEU",
+        "messages": [
+            ("user", "Cuáles son los horarios de atención?"),
+            ("assistant", "Nuestro chat está disponible 24/7. Las sucursales atienden de 10 a 15hs."),
+            ("user", "Y los feriados?"),
+            ("assistant", "Los feriados las sucursales permanecen cerradas, pero el chat sigue activo."),
+            ("user", "Perfecto, gracias por la info"),
+        ],
+    },
+    "abandono_corto": {
+        "intent": "saludo", "category": "general", "tag": "abandono-neutro", "sentiment": "NEU",
+        "messages": [("user", "Hola"), ("assistant", "¡Hola! ¿En qué puedo ayudarte?")],
+    },
+    "abandono_pregunta": {
+        "intent": "consulta_estado", "category": "consultas", "tag": "abandono-neutro", "sentiment": "NEU",
+        "messages": [("user", "Mi pedido no llegó")],
+    },
 }
 
 SCENARIOS_PT = {
     "exito_saldo_pt": {
-        "intent": "consulta_saldo",
-        "tag": None,
+        "intent": "consulta_saldo", "category": "consultas", "tag": None, "sentiment": "POS",
         "messages": [
             ("user", "Bom dia, preciso ver meu saldo"),
             ("assistant", "Bom dia! Claro, deixe-me consultar seu saldo."),
@@ -188,9 +198,18 @@ SCENARIOS_PT = {
             ("user", "Perfeito, muito obrigado pela ajuda!"),
         ],
     },
+    "exito_movimentos_pt": {
+        "intent": "consulta_movimientos", "category": "consultas", "tag": None, "sentiment": "POS",
+        "messages": [
+            ("user", "Quero ver meus últimos movimentos"),
+            ("assistant", "Aqui estão seus últimos movimentos da Conta Poupança."),
+            ("user", "Ótimo, muito obrigado!"),
+            ("assistant", "De nada! Posso ajudar em mais alguma coisa?"),
+            ("user", "Não, é só isso. Obrigado pelo excelente atendimento!"),
+        ],
+    },
     "frustrado_tarjeta_pt": {
-        "intent": "reclamo_tarjeta",
-        "tag": "reclamo-tarjeta",
+        "intent": "reclamo_tarjeta", "category": "reclamos", "tag": "reclamo-tarjeta", "sentiment": "NEG",
         "messages": [
             ("user", "Meu cartão não está funcionando, tentei pagar e foi recusado"),
             ("assistant", "Sinto muito por isso. Poderia me informar os últimos 4 dígitos?"),
@@ -201,39 +220,8 @@ SCENARIOS_PT = {
             ("user", "Que péssimo atendimento, estou perdendo tempo"),
         ],
     },
-    "neutral_consulta_pt": {
-        "intent": "consulta_produto",
-        "tag": None,
-        "messages": [
-            ("user", "Quais são as taxas de transferência?"),
-            ("assistant", "Transferências entre contas do mesmo banco são gratuitas. Para outros bancos, a taxa é de R$ 3,50."),
-            ("user", "E para transferências internacionais?"),
-            ("assistant", "Transferências internacionais possuem uma taxa de R$ 25,00 + IOF."),
-            ("user", "Entendi, obrigado"),
-        ],
-    },
-    "abandono_pt": {
-        "intent": "saludo",
-        "tag": "abandono-neutro",
-        "messages": [
-            ("user", "Olá"),
-            ("assistant", "Olá! Como posso ajudar?"),
-        ],
-    },
-    "exito_movimentos_pt": {
-        "intent": "consulta_movimientos",
-        "tag": None,
-        "messages": [
-            ("user", "Quero ver meus últimos movimentos"),
-            ("assistant", "Aqui estão seus últimos movimentos da Conta Poupança."),
-            ("user", "Ótimo, muito obrigado!"),
-            ("assistant", "De nada! Posso ajudar em mais alguma coisa?"),
-            ("user", "Não, é só isso. Obrigado pelo excelente atendimento!"),
-        ],
-    },
     "frustrado_servico_pt": {
-        "intent": "reclamo_servicio",
-        "tag": "frustracion-detectada",
+        "intent": "reclamo_servicio", "category": "reclamos", "tag": "frustracion-detectada", "sentiment": "NEG",
         "messages": [
             ("user", "O aplicativo caiu de novo, isso é inaceitável"),
             ("assistant", "Peço desculpas pelo inconveniente. Estamos trabalhando para resolver."),
@@ -243,154 +231,144 @@ SCENARIOS_PT = {
             ("user", "Vou trocar de banco se continuar assim"),
         ],
     },
+    "neutral_consulta_pt": {
+        "intent": "consulta_produto", "category": "consultas", "tag": None, "sentiment": "NEU",
+        "messages": [
+            ("user", "Quais são as taxas de transferência?"),
+            ("assistant", "Transferências entre contas do mesmo banco são gratuitas. Para outros bancos, R$ 3,50."),
+            ("user", "E para transferências internacionais?"),
+            ("assistant", "Transferências internacionais possuem uma taxa de R$ 25,00 + IOF."),
+            ("user", "Entendi, obrigado"),
+        ],
+    },
+    "abandono_pt": {
+        "intent": "saludo", "category": "general", "tag": "abandono-neutro", "sentiment": "NEU",
+        "messages": [("user", "Olá"), ("assistant", "Olá! Como posso ajudar?")],
+    },
 }
 
-# Distribución de escenarios
-DISTRIBUTION = {
-    "exito": 0.40,
-    "frustrado": 0.30,
-    "neutral": 0.20,
-    "abandono": 0.10,
-}
+# Pools por categoría
+def _build_pools(scenarios: dict) -> dict:
+    pools = {"exito": [], "frustrado": [], "neutral": [], "abandono": []}
+    for k, v in scenarios.items():
+        for cat in pools:
+            if k.startswith(cat):
+                pools[cat].append(v)
+                break
+    return pools
 
-# Variaciones de mensajes para diversidad
-MSG_VARIATIONS_ES = {
-    "greeting": ["Hola", "Buenos días", "Buenas tardes", "Hola, buenas", "Hola! necesito ayuda"],
-    "thanks": ["Gracias!", "Muchas gracias", "Perfecto, gracias", "Excelente, gracias!", "Genial, muchas gracias"],
-    "angry": ["Esto es inaceptable", "No sirve para nada", "Pésimo servicio", "Estoy furioso", "Esto es una vergüenza"],
-    "bye": ["Chau", "Hasta luego", "Nos vemos", "Adiós", "Eso es todo, gracias"],
-}
+SENTIMENT_GROUP = {"POS": "Positive", "NEG": "Negative", "NEU": "Neutral"}
+RESOLUTION_MAP = {"exito": "SUCCESS", "frustrado": "FRUSTRATION", "neutral": "NEUTRAL", "abandono": "NEUTRAL"}
+
+# Pesos horarios para simular picos en horario laboral
+HOUR_WEIGHTS = [1]*6 + [3,4,5,6,8,10,10,9,8,7,6,5,4,3,2,2,1,1]  # 00h-23h
 
 
-async def generate_synthetic_data(total_sessions: int = 1500) -> None:
-    """Genera sesiones sintéticas en agent_core."""
-
+async def generate_synthetic_data(total_sessions: int = 120) -> None:
+    """Genera sesiones sintéticas en agent_core Y analytics_warehouse."""
     async with async_session_maker() as session:
         # Obtener usuarios existentes
-        result = await session.execute(text(
-            "SELECT user_id FROM agent_core.users"
-        ))
+        result = await session.execute(text("SELECT user_id FROM agent_core.users"))
         user_ids = [str(r.user_id) for r in result.fetchall()]
-
         if not user_ids:
             logger.error("No hay usuarios en agent_core.users. Ejecutá seed_db.py primero.")
             return
 
-        # Obtener IDs de catálogos
-        roles_r = await session.execute(text(
-            "SELECT role_id, role_name FROM agent_core.cat_roles"
-        ))
+        # Catálogos OLTP
+        roles_r = await session.execute(text("SELECT role_id, role_name FROM agent_core.cat_roles"))
         roles = {r.role_name: r.role_id for r in roles_r.fetchall()}
 
-        tags_r = await session.execute(text(
-            "SELECT tag_id, tag_name FROM agent_core.cat_tags"
-        ))
+        tags_r = await session.execute(text("SELECT tag_id, tag_name FROM agent_core.cat_tags"))
         tags_map = {r.tag_name: r.tag_id for r in tags_r.fetchall()}
 
-        langs_r = await session.execute(text(
-            "SELECT language_id, iso_code FROM agent_core.cat_languages"
-        ))
+        langs_r = await session.execute(text("SELECT language_id, iso_code FROM agent_core.cat_languages"))
         langs = {r.iso_code: r.language_id for r in langs_r.fetchall()}
 
-        # Preparar pool de escenarios
-        all_scenarios_es = list(SCENARIOS_ES.values())
-        all_scenarios_pt = list(SCENARIOS_PT.values())
+        # Catálogos OLAP
+        res_r = await session.execute(text(
+            "SELECT resolution_id, resolution_name FROM analytics_warehouse.cat_resolution_types"
+        ))
+        resolution_ids = {r.resolution_name: r.resolution_id for r in res_r.fetchall()}
 
-        exito_es = [s for k, s in SCENARIOS_ES.items() if k.startswith("exito")]
-        frustrado_es = [s for k, s in SCENARIOS_ES.items() if k.startswith("frustrado")]
-        neutral_es = [s for k, s in SCENARIOS_ES.items() if k.startswith("neutral")]
-        abandono_es = [s for k, s in SCENARIOS_ES.items() if k.startswith("abandono")]
+        lang_olap_r = await session.execute(text(
+            "SELECT language_id, iso_code FROM analytics_warehouse.dim_language"
+        ))
+        lang_olap = {r.iso_code: r.language_id for r in lang_olap_r.fetchall()}
 
-        exito_pt = [s for k, s in SCENARIOS_PT.items() if k.startswith("exito")]
-        frustrado_pt = [s for k, s in SCENARIOS_PT.items() if k.startswith("frustrado")]
-        neutral_pt = [s for k, s in SCENARIOS_PT.items() if k.startswith("neutral")]
-        abandono_pt = [s for k, s in SCENARIOS_PT.items() if k.startswith("abandono")]
+        # Pools de escenarios
+        pools_es = _build_pools(SCENARIOS_ES)
+        pools_pt = _build_pools(SCENARIOS_PT)
 
         created = 0
         base_date = datetime.now(timezone.utc) - timedelta(days=30)
 
         for i in range(total_sessions):
-            # Determinar tipo de escenario
+            # Tipo de escenario
             rand = random.random()
-            is_pt = random.random() < 0.3  # 30% portugués
-
             if rand < 0.40:
-                pool = exito_pt if is_pt else exito_es
-            elif rand < 0.70:
-                pool = frustrado_pt if is_pt else frustrado_es
-            elif rand < 0.90:
-                pool = neutral_pt if is_pt else neutral_es
+                scenario_type = "exito"
+            elif rand < 0.65:
+                scenario_type = "frustrado"
+            elif rand < 0.85:
+                scenario_type = "neutral"
             else:
-                pool = abandono_pt if is_pt else abandono_es
+                scenario_type = "abandono"
 
+            is_pt = random.random() < 0.30
+            pool = (pools_pt if is_pt else pools_es).get(scenario_type, [])
             if not pool:
-                pool = all_scenarios_es
-
+                pool = pools_es.get(scenario_type, list(SCENARIOS_ES.values()))
             scenario = random.choice(pool)
+
             user_id = random.choice(user_ids)
             lang_iso = "pt" if is_pt else "es"
             lang_id = langs.get(lang_iso, langs.get("es"))
-
             msg_count = len(scenario["messages"])
+
+            # Timestamps distribuidos en 30 días con pesos horarios
+            day_offset = random.randint(0, 30)
+            hour = random.choices(range(24), weights=HOUR_WEIGHTS, k=1)[0]
+            session_start = base_date + timedelta(days=day_offset, hours=hour, minutes=random.randint(0, 59))
             session_duration = msg_count * random.randint(30, 180)
-            
-            # Timestamps
-            # Simular sesiones en las últimas 24 horas
-            session_start = datetime.now(timezone.utc) - timedelta(minutes=random.randint(1, 60 * 24))
-            has_end = "abandono" not in str(scenario.get("intent", ""))
-            session_end = session_start + timedelta(minutes=random.randint(1, 15)) if has_end else None
+            session_end = session_start + timedelta(seconds=session_duration)
 
-            # Retries para escenarios frustrados
-            retry_count = random.randint(1, 3) if "frustrado" in str(scenario.get("tag", "")) else 0
+            # Abandonos: sin end_time a veces
+            is_abandoned = scenario_type == "abandono"
+            if is_abandoned and random.random() < 0.5:
+                session_end = None
 
-            # Para abandonos, no poner end_time a veces
-            has_end = True
-            if msg_count < 3 and random.random() < 0.5:
-                has_end = False
+            retry_count = random.randint(1, 3) if scenario_type == "frustrado" else 0
 
-            # Crear sesión
+            # ── OLTP: Crear sesión (status=4 COMPLETED) ───────────────
             session_id = str(uuid.uuid4())
             await session.execute(text("""
                 INSERT INTO agent_core.sessions
                     (session_id, user_id, status_id, language_id, retry_count, start_time, end_time)
-                VALUES (:sid, :uid, 2, :lid, :rc, :st, :et)
+                VALUES (:sid, :uid, 4, :lid, :rc, :st, :et)
             """), {
-                "sid": session_id,
-                "uid": user_id,
-                "lid": lang_id,
-                "rc": retry_count,
-                "st": session_start,
-                "et": session_end if has_end else None,
+                "sid": session_id, "uid": user_id, "lid": lang_id,
+                "rc": retry_count, "st": session_start, "et": session_end,
             })
 
-            # Crear mensajes
+            # ── OLTP: Mensajes ────────────────────────────────────────
             msg_time = session_start
             for role_name, content in scenario["messages"]:
                 msg_id = str(uuid.uuid4())
                 role_id = roles.get(role_name, roles.get("user", 1))
                 msg_time += timedelta(seconds=random.randint(10, 120))
-
-                # Agregar variaciones aleatorias al contenido
-                varied_content = content
+                varied = content
                 if random.random() < 0.15:
-                    varied_content = content + " " + random.choice(
-                        ["por favor", "urgente", "gracias", "necesito ayuda", "ya probé"]
-                    )
-
+                    varied += " " + random.choice(["por favor", "urgente", "gracias", "necesito ayuda", "ya probé"])
                 await session.execute(text("""
                     INSERT INTO agent_core.messages
                         (message_id, session_id, role_id, content, tokens_used, created_at)
                     VALUES (:mid, :sid, :rid, :content, :tokens, :cat)
                 """), {
-                    "mid": msg_id,
-                    "sid": session_id,
-                    "rid": role_id,
-                    "content": varied_content,
-                    "tokens": random.randint(10, 80),
-                    "cat": msg_time,
+                    "mid": msg_id, "sid": session_id, "rid": role_id,
+                    "content": varied, "tokens": random.randint(10, 80), "cat": msg_time,
                 })
 
-            # Asignar tags
+            # ── OLTP: Tags ────────────────────────────────────────────
             tag_name = scenario.get("tag")
             if tag_name and tag_name in tags_map:
                 await session.execute(text("""
@@ -398,51 +376,130 @@ async def generate_synthetic_data(total_sessions: int = 1500) -> None:
                     VALUES (:sid, :tid) ON CONFLICT DO NOTHING
                 """), {"sid": session_id, "tid": tags_map[tag_name]})
 
-            # Star rating para sesiones exitosas
-            if "exito" in str(scenario.get("intent", "")):
-                if random.random() < 0.6:
-                    await session.execute(text("""
-                        INSERT INTO agent_core.session_ratings
-                            (rating_id, session_id, rating, created_at)
-                        VALUES (:rid, :sid, :rating, :cat)
-                    """), {
-                        "rid": str(uuid.uuid4()),
-                        "sid": session_id,
-                        "rating": random.choice([4, 4, 5, 5, 5]),
-                        "cat": session_end,
-                    })
+            # ── OLTP: Star rating (éxitos) ────────────────────────────
+            pos_fb, neg_fb = 0, 0
+            star_rating = None
+            if scenario_type == "exito" and random.random() < 0.6:
+                star_rating = random.choice([4, 4, 5, 5, 5])
+                await session.execute(text("""
+                    INSERT INTO agent_core.session_ratings (rating_id, session_id, rating, created_at)
+                    VALUES (:rid, :sid, :rating, :cat)
+                """), {
+                    "rid": str(uuid.uuid4()), "sid": session_id,
+                    "rating": star_rating, "cat": session_end or session_start,
+                })
+                pos_fb = random.randint(1, 3)
 
-            # Feedback negativo para sesiones frustradas
-            if "frustrado" in str(scenario.get("tag", "")) or "reclamo" in str(scenario.get("tag", "")):
-                if random.random() < 0.5:
-                    # Obtener un mensaje del bot de esta sesión
-                    bot_msgs = await session.execute(text("""
-                        SELECT message_id FROM agent_core.messages
-                        WHERE session_id = :sid AND role_id = :rid
-                        LIMIT 1
-                    """), {"sid": session_id, "rid": roles.get("assistant", 2)})
-                    bot_msg = bot_msgs.scalar()
-                    if bot_msg:
-                        await session.execute(text("""
-                            INSERT INTO agent_core.feedback
-                                (feedback_id, message_id, rating, created_at)
-                            VALUES (:fid, :mid, -1, :cat)
-                        """), {
-                            "fid": str(uuid.uuid4()),
-                            "mid": str(bot_msg),
-                            "cat": session_end,
-                        })
+            # ── OLTP: Feedback negativo (frustrados) ──────────────────
+            if scenario_type == "frustrado" and random.random() < 0.5:
+                bot_msgs = await session.execute(text("""
+                    SELECT message_id FROM agent_core.messages
+                    WHERE session_id = :sid AND role_id = :rid LIMIT 1
+                """), {"sid": session_id, "rid": roles.get("assistant", 2)})
+                bot_msg = bot_msgs.scalar()
+                if bot_msg:
+                    await session.execute(text("""
+                        INSERT INTO agent_core.feedback (feedback_id, message_id, rating, created_at)
+                        VALUES (:fid, :mid, -1, :cat)
+                    """), {
+                        "fid": str(uuid.uuid4()), "mid": str(bot_msg),
+                        "cat": session_end or session_start,
+                    })
+                    neg_fb = random.randint(1, 2)
+
+            # ══════════════════════════════════════════════════════════
+            # OLAP: Insertar directamente en analytics_warehouse
+            # ══════════════════════════════════════════════════════════
+
+            # dim_time
+            days_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            dt = session_start
+            dow = days_names[dt.weekday()]
+            time_result = await session.execute(text("""
+                INSERT INTO analytics_warehouse.dim_time
+                    (full_date, year, month, day, hour, day_of_week, is_weekend)
+                VALUES (:fd, :y, :m, :d, :h, :dow, :we)
+                ON CONFLICT (full_date, hour) DO UPDATE SET full_date = EXCLUDED.full_date
+                RETURNING time_id
+            """), {
+                "fd": dt.date(), "y": dt.year, "m": dt.month, "d": dt.day,
+                "h": dt.hour, "dow": dow, "we": dt.weekday() >= 5,
+            })
+            time_id = time_result.scalar()
+
+            # dim_intent
+            intent_name = scenario.get("intent", "intent_desconocido")
+            intent_cat = scenario.get("category", "general")
+            intent_result = await session.execute(text("""
+                INSERT INTO analytics_warehouse.dim_intent (intent_name, category)
+                VALUES (:name, :cat)
+                ON CONFLICT (intent_name) DO UPDATE SET category = EXCLUDED.category
+                RETURNING intent_id
+            """), {"name": intent_name, "cat": intent_cat})
+            intent_id = intent_result.scalar()
+
+            # dim_sentiment
+            sent_label = scenario.get("sentiment", "NEU")
+            sent_group = SENTIMENT_GROUP[sent_label]
+            sent_result = await session.execute(text("""
+                INSERT INTO analytics_warehouse.dim_sentiment (label, sentiment_group)
+                VALUES (:label, :grp)
+                ON CONFLICT (label) DO UPDATE SET sentiment_group = EXCLUDED.sentiment_group
+                RETURNING sentiment_id
+            """), {"label": sent_label, "grp": sent_group})
+            sentiment_id = sent_result.scalar()
+
+            # resolution
+            resolution_name = RESOLUTION_MAP[scenario_type]
+            resolution_id = resolution_ids.get(resolution_name)
+
+            # Sentiment score coherente
+            score_ranges = {"POS": (0.75, 0.95), "NEG": (0.65, 0.90), "NEU": (0.45, 0.65)}
+            score_min, score_max = score_ranges[sent_label]
+            sentiment_score = round(random.uniform(score_min, score_max), 2)
+
+            # fact_sessions_evaluation
+            fact_id = str(uuid.uuid4())
+            await session.execute(text("""
+                INSERT INTO analytics_warehouse.fact_sessions_evaluation (
+                    fact_id, session_id, dim_time_id, dim_language_id,
+                    dim_intent_id, dim_sentiment_id, resolution_id,
+                    session_duration_seconds, total_messages, sentiment_score,
+                    positive_feedback_count, negative_feedback_count, is_abandoned
+                ) VALUES (
+                    :fid, :sid, :tid, :lid, :iid, :seid, :rid,
+                    :dur, :msgs, :score, :pos, :neg, :aband
+                )
+            """), {
+                "fid": fact_id, "sid": session_id, "tid": time_id,
+                "lid": lang_olap.get(lang_iso), "iid": intent_id,
+                "seid": sentiment_id, "rid": resolution_id,
+                "dur": session_duration, "msgs": msg_count,
+                "score": sentiment_score, "pos": pos_fb, "neg": neg_fb,
+                "aband": is_abandoned,
+            })
+
+            # fact_tag_assignments
+            if tag_name and tag_name in tags_map:
+                # Buscar tag_id en dim_tags del OLAP
+                olap_tag = await session.execute(text("""
+                    SELECT tag_id FROM analytics_warehouse.dim_tags WHERE tag_name = :name
+                """), {"name": tag_name})
+                olap_tag_id = olap_tag.scalar()
+                if olap_tag_id:
+                    await session.execute(text("""
+                        INSERT INTO analytics_warehouse.fact_tag_assignments (fact_id, tag_id)
+                        VALUES (:fid, :tid) ON CONFLICT DO NOTHING
+                    """), {"fid": fact_id, "tid": olap_tag_id})
 
             created += 1
-
-            # Commit cada 100 sesiones
-            if created % 100 == 0:
+            if created % 50 == 0:
                 await session.commit()
                 logger.info(f"Progreso: {created}/{total_sessions} sesiones creadas")
 
         await session.commit()
-        logger.info(f"✅ Generación completada: {created} sesiones sintéticas creadas")
+        logger.info(f"✅ Generación completada: {created} sesiones (OLTP + OLAP)")
 
 
 if __name__ == "__main__":
-    asyncio.run(generate_synthetic_data(20))
+    asyncio.run(generate_synthetic_data(120))
