@@ -9,10 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.api.v1.agent import router as agent_router
+from app.api.v1.evaluator import router as evaluator_router
+from app.api.v1.dashboard import router as dashboard_router
 
 router = APIRouter()
 
 router.include_router(agent_router, prefix="/agent")
+router.include_router(evaluator_router, prefix="/evaluator")
+router.include_router(dashboard_router, prefix="/dashboard")
 
 
 @router.get("/health", tags=["System"])
@@ -44,3 +48,4 @@ async def health_check(db: AsyncSession = Depends(get_db)):
             "detail": db_detail,
         },
     }
+

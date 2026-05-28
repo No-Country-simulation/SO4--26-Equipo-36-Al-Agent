@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     # Session Management
     SESSION_TIMEOUT_SECONDS: int = 300  # 5 minutos de inactividad
 
+    # Hugging Face (Evaluator - Sentiment Analysis)
+    HF_API_TOKEN: str = ""
+    HF_SENTIMENT_MODEL_ES: str = "pysentimiento/robertuito-sentiment-analysis"
+    HF_SENTIMENT_MODEL_PT: str = "pysentimiento/bertweet-pt-sentiment"
+    HF_API_TIMEOUT: int = 30
+
+    # Evaluator Pipeline
+    EVALUATOR_BATCH_SIZE: int = 50
+    EVALUATOR_MAX_CONCURRENT: int = 5
+
     @property
     def async_database_url(self) -> str:
         """Convierte la URL de PostgreSQL a formato async (asyncpg)."""

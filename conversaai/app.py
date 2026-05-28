@@ -1,5 +1,12 @@
+"""
+Dashboard principal de ConversaAI — Consume datos desde la API de FastAPI.
+"""
 import streamlit as st
 import plotly.graph_objects as go
+import requests
+
+# ── CONFIG ─────────────────────────────────────────────────────────────────
+API_BASE = "http://localhost:8000/api/v1/dashboard"
 
 st.set_page_config(
     page_title="ConversaAI",
@@ -8,8 +15,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-TELEGRAM_SVG = """<svg width="14" height="13" viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.48532 0.0906039C7.5813 1.1182 2.29404 3.97121 0.397196 4.99465C0.141714 5.1326 -0.0121029 5.40396 0.000746782 5.69383C0.0139744 5.98333 0.191599 6.24031 0.458041 6.35445L3.01966 7.45385L3.0072 9.06044C3.00455 9.37299 3.19502 9.65531 3.48641 9.76945C3.77742 9.88396 4.10924 9.80724 4.32051 9.5767L5.40253 8.39453L8.1603 9.30723C8.3674 9.37601 8.59454 9.35145 8.78237 9.23996C8.97058 9.12885 9.10135 8.94177 9.14103 8.72673L10.5874 0.893329C10.6403 0.607234 10.5243 0.316231 10.2892 0.14465C10.0537 -0.026553 9.74118 -0.0473412 9.48532 0.0906039ZM9.7272 1.39031L8.39764 8.58954L5.40782 7.60011C5.26647 7.55325 5.11076 7.59407 5.01023 7.70367L3.76306 9.06611L3.77628 7.36277L9.7272 1.39031ZM0.755855 5.65981L3.31294 6.75695L8.6501 1.40014L0.755855 5.65981Z" fill="#4B6BFF"/></svg>"""
-
+# ── ESTILOS ────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -27,22 +33,16 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 [data-testid="stSidebarNav"] { display: none !important; }
 [data-testid="stDecoration"] { display: none !important; }
 
-/* Eliminar todo padding de Streamlit */
 .block-container { padding: 0 !important; max-width: 100% !important; }
 [data-testid="stVerticalBlock"] { gap: 0 !important; }
 [data-testid="stHorizontalBlock"] { gap: 0 !important; padding: 0 24px !important; }
 [data-testid="stHorizontalBlock"] > div:first-child { padding-right: 12px !important; }
 [data-testid="stHorizontalBlock"] > div:last-child  { padding-left: 12px !important; }
-
-/* Border-radius en contenedores de Plotly */
 [data-testid="stPlotlyChart"] > div { border-radius: 10px !important; overflow: hidden !important; background: white; box-shadow: 0 1px 4px rgba(26,32,53,0.06); }
-
-/* Separación entre charts y secciones de abajo */
 [data-testid="stHorizontalBlock"] { margin-bottom: 24px !important; }
 [data-testid="stVerticalBlockBorderWrapper"] { padding: 0 !important; }
 div[data-testid="column"] { padding: 0 !important; }
 
-/* ── SIDEBAR ── */
 [data-testid="stSidebar"] { background-color: #0D19B3 !important; width: 220px !important; min-width: 220px !important; }
 [data-testid="stSidebar"] > div:first-child { padding: 0 !important; background-color: #0D19B3 !important; }
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { padding: 0 !important; gap: 0 !important; }
@@ -61,37 +61,25 @@ div[data-testid="column"] { padding: 0 !important; }
 .nav-btn.active { background: #2E52F5 !important; }
 .nav-btn.active, .nav-btn.active i { color: #ffffff !important; }
 [data-testid="stSidebar"] .stButton button {
-    background: transparent !important;
-    color: #C8D4FF !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 10px 8px !important;
-    font-size: 12px !important;
-    font-weight: 400 !important;
-    text-align: left !important;
-    width: 100% !important;
-    font-family: 'Inter', sans-serif !important;
+    background: transparent !important; color: #C8D4FF !important;
+    border: none !important; border-radius: 8px !important;
+    padding: 10px 8px !important; font-size: 12px !important;
+    font-weight: 400 !important; text-align: left !important;
+    width: 100% !important; font-family: 'Inter', sans-serif !important;
     box-shadow: none !important;
 }
 [data-testid="stSidebar"] .stButton button:hover {
-    background: #EBF0FF !important;
-    color: #1228D4 !important;
+    background: #EBF0FF !important; color: #1228D4 !important;
 }
 
-/* ── TOPBAR ── */
 .topbar { background: #ffffff; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid #F0F2F8; margin-bottom: 24px; }
 .topbar h1 { font-size: 18px; font-weight: 600; color: #0A1172; margin: 0 0 2px 0; line-height: 1.2; }
 .topbar p  { font-size: 10px; color: #8892A8; margin: 0; line-height: 1.2; padding-bottom: 0; }
-.topbar-right { display: flex; align-items: center; gap: 24px; }
-.topbar-date { font-size: 11px; color: #8892A8; }
-.topbar-avatar { width: 36px; height: 36px; border-radius: 50%; background: #D1F5E8; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #0A5C3F; }
 
-/* ── CONTENT ── */
 .px { padding: 0 24px; }
 .mb24 { margin-bottom: 24px; }
 .mb20 { margin-bottom: 20px; }
 
-/* KPI */
 .kpi-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
 .kpi-card { background: #fff; border-radius: 12px; padding: 16px; border-top: 3px solid #4B6BFF; box-shadow: 0 1px 4px rgba(26,32,53,0.06); }
 .kpi-label { font-size: 11px; font-weight: 500; color: #8892A8; margin-bottom: 6px; }
@@ -99,68 +87,45 @@ div[data-testid="column"] { padding: 0 !important; }
 .kpi-meta  { font-size: 12px; display: flex; align-items: center; gap: 6px; }
 .c-green { color: #1D9E75; } .c-red { color: #E8593C; } .c-amber { color: #F0A500; } .c-gray { color: #8892A8; }
 
-/* CARDS */
 .section-card { background: #fff; border-radius: 12px; padding: 14px; box-shadow: 0 1px 4px rgba(26,32,53,0.06); }
-.chart-card   { background: #fff; border-radius: 10px; box-shadow: 0 1px 4px rgba(26,32,53,0.06); overflow: hidden; }
-.charts-row-wrap { padding: 0 24px; margin-bottom: 24px; display: flex; gap: 24px; }
-.charts-row-wrap > div:first-child { flex: 2.8; min-width: 0; }
-.charts-row-wrap > div:last-child  { flex: 1; min-width: 0; }
-
 .section-title { font-size: 14px; font-weight: 600; color: #1A2035; margin-bottom: 16px; }
 .intent-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .intent-row:last-child { margin-bottom: 0; }
-.intent-label { font-size: 13px; color: #2E3A56; width: 150px; flex-shrink: 0; }
+.intent-label { font-size: 13px; color: #2E3A56; width: 200px; flex-shrink: 0; }
 .intent-bar-bg { flex: 1; height: 8px; background: #F0F2F8; border-radius: 99px; overflow: hidden; }
 .intent-bar-fill { height: 100%; border-radius: 99px; }
-.intent-pct { font-size: 12px; color: #8892A8; width: 36px; text-align: right; }
-
-.tickets-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.tickets-header span { font-size: 14px; font-weight: 600; color: #1A2035; }
-.tickets-header a { font-size: 13px; color: #2E52F5; text-decoration: none; }
-.ticket-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #F0F2F8; }
-.ticket-row:last-child { border-bottom: none; }
-.ticket-left { display: flex; align-items: center; gap: 10px; }
-.ticket-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-.ticket-icon.tg { background: #EBF0FF; } .ticket-icon.wa { background: #D1F5E8; }
-.ticket-id   { font-size: 13px; font-weight: 600; color: #1A2035; }
-.ticket-time { font-size: 11px; color: #8892A8; font-weight: 400; }
-.ticket-msg  { font-size: 12px; color: #2E3A56; margin-top: 2px; }
-.tag { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
-.tag-neg { background: #FDECEA; color: #E8593C; }
-.tag-pos { background: #D1F5E8; color: #1D9E75; }
+.intent-pct { font-size: 12px; color: #8892A8; width: 50px; text-align: right; }
+.no-data { padding: 40px; text-align: center; color: #8892A8; font-size: 14px; }
 </style>
 """, unsafe_allow_html=True)
 
+
+# ── HELPER: Fetch data from API ───────────────────────────────────────────
+@st.cache_data(ttl=20)
+def fetch_overview() -> dict:
+    """Obtiene KPIs y datos de charts desde la API."""
+    try:
+        resp = requests.get(f"{API_BASE}/overview", timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+
 # ── SIDEBAR ────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown(f"""
+    st.markdown("""
     <div class="sidebar-wrap">
         <div class="sidebar-brand"><h2>ConversaAI</h2><p>Panel de analítica</p></div>
         <span class="sidebar-menu-label">MENÚ</span>
         <div class="sidebar-nav">
-            <a class="nav-btn active" href="#"><i class="mdi mdi-view-dashboard-outline"></i> Dashboard</a>
+            <a class="nav-btn active" href="/"><i class="mdi mdi-view-dashboard-outline"></i> Dashboard</a>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    <style>
-    [data-testid="stSidebar"] .stButton button {
-        background: transparent !important; color: #C8D4FF !important;
-        border: none !important; border-radius: 8px !important;
-        padding: 10px 8px !important; font-size: 12px !important;
-        font-weight: 400 !important; text-align: left !important;
-        width: 100% !important; font-family: 'Inter', sans-serif !important;
-        box-shadow: none !important; margin: 0 0 2px 0 !important;
-    }
-    [data-testid="stSidebar"] .stButton button:hover {
-        background: #EBF0FF !important; color: #1228D4 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-    
+
     if st.button("🎫  Tickets", key="nav_tickets"):
-        st.markdown('<meta http-equiv="refresh" content="0; url=/2_tickets">', unsafe_allow_html=True)
+        st.switch_page("pages/2_tickets.py")
 
     st.markdown("""
     <div class="sidebar-footer">
@@ -168,62 +133,82 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
+
+# ── FETCH DATA ─────────────────────────────────────────────────────────────
+data = fetch_overview()
+
 # ── TOPBAR ─────────────────────────────────────────────────────────────────
-st.markdown("""
+from datetime import datetime
+today = datetime.now().strftime("%d %b %Y")
+st.markdown(f"""
 <div class="topbar">
-  <div><h1>Dashboard</h1><p>Monitoreo en tiempo real · actualiza cada 20s</p></div>
-  <div class="topbar-right">
-    <span class="topbar-date">14 May 2026</span>
-    <div class="topbar-avatar">P</div>
+  <div><h1>Dashboard</h1><p>Monitoreo analítico · actualiza cada 20s</p></div>
+  <div style="display:flex;align-items:center;gap:24px;">
+    <span style="font-size:11px;color:#8892A8;">{today}</span>
+    <div style="width:36px;height:36px;border-radius:50%;background:#D1F5E8;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#0A5C3F;">P</div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
+
+if not data:
+    st.markdown('<div class="px"><div class="no-data">⚠ No se pudo conectar con la API. Verificá que el backend esté corriendo en http://localhost:8000</div></div>', unsafe_allow_html=True)
+    st.stop()
+
+kpis = data["kpis"]
+
 # ── KPI CARDS ──────────────────────────────────────────────────────────────
+success_cls = "c-green" if kpis["success_rate"] >= 50 else "c-amber"
+frust_cls = "c-red" if kpis["frustration_rate"] > 20 else "c-amber"
+abandon_cls = "c-red" if kpis["abandon_rate"] > 25 else "c-amber"
+
 st.markdown(f"""
 <div class="px mb24">
   <div class="kpi-grid">
     <div class="kpi-card" style="border-top-color:#2E52F5;">
-      <div class="kpi-label">Mensajes hoy</div><div class="kpi-value">247</div>
-      <div class="kpi-meta c-green">↑ +12% vs ayer</div>
+      <div class="kpi-label">Mensajes totales</div><div class="kpi-value">{kpis["total_messages"]:,}</div>
+      <div class="kpi-meta c-gray">Corpus evaluado</div>
     </div>
     <div class="kpi-card" style="border-top-color:#4B6BFF;">
-      <div class="kpi-label">Sesiones activas</div><div class="kpi-value">18</div>
-      <div class="kpi-meta c-gray">{TELEGRAM_SVG} 11 &nbsp;·&nbsp; <i class="mdi mdi-whatsapp" style="color:#1D9E75;font-size:15px;"></i> 7</div>
+      <div class="kpi-label">Sesiones evaluadas</div><div class="kpi-value">{kpis["total_sessions"]:,}</div>
+      <div class="kpi-meta c-gray">Total procesadas</div>
     </div>
     <div class="kpi-card" style="border-top-color:#E8593C;">
-      <div class="kpi-label">Tasa de abandono</div><div class="kpi-value">23%</div>
-      <div class="kpi-meta c-red">↑ +4% esta semana</div>
+      <div class="kpi-label">Tasa de abandono</div><div class="kpi-value">{kpis["abandon_rate"]}%</div>
+      <div class="kpi-meta {abandon_cls}">Sesiones abandonadas</div>
     </div>
     <div class="kpi-card" style="border-top-color:#1D9E75;">
-      <div class="kpi-label">Éxito confirmado</div><div class="kpi-value">61%</div>
-      <div class="kpi-meta c-green">↑ +2%</div>
+      <div class="kpi-label">Éxito confirmado</div><div class="kpi-value">{kpis["success_rate"]}%</div>
+      <div class="kpi-meta {success_cls}">Resolución exitosa</div>
     </div>
     <div class="kpi-card" style="border-top-color:#F0A500;">
-      <div class="kpi-label">Frustración</div><div class="kpi-value">16%</div>
-      <div class="kpi-meta c-amber">↑ +1%</div>
+      <div class="kpi-label">Frustración</div><div class="kpi-value">{kpis["frustration_rate"]}%</div>
+      <div class="kpi-meta {frust_cls}">Sesiones frustradas</div>
     </div>
     <div class="kpi-card" style="border-top-color:#00D4FF;">
-      <div class="kpi-label">Tiempo respuesta</div><div class="kpi-value">1.4s</div>
-      <div class="kpi-meta c-green">Objetivo &lt;2s ✓</div>
+      <div class="kpi-label">Duración promedio</div><div class="kpi-value">{int(kpis["avg_duration_seconds"])}s</div>
+      <div class="kpi-meta c-gray">Segundos por sesión</div>
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
+
 
 # ── CHARTS ROW ─────────────────────────────────────────────────────────────
 col_bar, col_donut = st.columns([2.8, 1], gap="small")
 
 with col_bar:
-    hours  = ["00h","02h","04h","06h","08h","10h","12h","14h","16h","18h","20h","22h","23h"]
-    values = [12, 8, 5, 9, 28, 42, 61, 55, 48, 31, 38, 45, 40]
-    colors = ["#2E52F5" if v >= 55 else "#A0B4FF" for v in values]
+    hours_data = data.get("conversations_by_hour", {})
+    hours = [f"{h:02d}h" for h in range(24)]
+    values = [hours_data.get(str(h), hours_data.get(h, 0)) for h in range(24)]
+    colors = ["#2E52F5" if v >= max(values) * 0.7 else "#A0B4FF" for v in values] if values and max(values) > 0 else ["#A0B4FF"] * 24
+
     fig_bar = go.Figure(go.Bar(
         x=hours, y=values,
         marker=dict(color=colors, line=dict(width=0), cornerradius=4),
     ))
     fig_bar.update_layout(
-        title=dict(text="Conversaciones por hora — hoy", font=dict(size=14, family="Inter", color="#1A2035"), x=0, pad=dict(b=37)),
+        title=dict(text="Conversaciones por hora", font=dict(size=14, family="Inter", color="#1A2035"), x=0, pad=dict(b=37)),
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         margin=dict(l=14, r=14, t=60, b=14), height=260,
         xaxis=dict(showgrid=False, tickfont=dict(size=11, color="#8892A8"), tickcolor="white", linecolor="white"),
@@ -235,10 +220,14 @@ with col_bar:
     st.markdown('</div>', unsafe_allow_html=True)
 
 with col_donut:
+    sent = data.get("sentiment_distribution", {})
+    labels = ["Positivo", "Negativo", "Neutral"]
+    sent_values = [sent.get("Positive", 0), sent.get("Negative", 0), sent.get("Neutral", 0)]
+
     fig_donut = go.Figure(go.Pie(
-        labels=["Positivo","Negativo","Neutral"], values=[60, 21, 19],
-        hole=0.62, marker_colors=["#1D9E75","#E8593C","#8892A8"],
-        textinfo="none", hovertemplate="%{label}: %{value}%<extra></extra>",
+        labels=labels, values=sent_values,
+        hole=0.62, marker_colors=["#1D9E75", "#E8593C", "#8892A8"],
+        textinfo="none", hovertemplate="%{label}: %{value}<extra></extra>",
     ))
     fig_donut.update_layout(
         title=dict(text="Distribución de sentimiento", font=dict(size=14, family="Inter", color="#1A2035"), x=0),
@@ -249,53 +238,29 @@ with col_donut:
     st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
     st.markdown('</div>', unsafe_allow_html=True)
 
-# ── INTENCIONES + TICKETS ──────────────────────────────────────────────────
-st.markdown(f"""
-<div class="px">
-  <div class="section-card mb20">
-    <div class="section-title">Top intenciones no resueltas</div>
-    <div class="intent-row">
-      <span class="intent-label">Consulta de estado</span>
-      <div class="intent-bar-bg"><div class="intent-bar-fill" style="width:72%;background:#E8593C;"></div></div>
-      <span class="intent-pct">72%</span>
-    </div>
-    <div class="intent-row">
-      <span class="intent-label">Solicitar operador</span>
-      <div class="intent-bar-bg"><div class="intent-bar-fill" style="width:55%;background:#F0A500;"></div></div>
-      <span class="intent-pct">55%</span>
-    </div>
-    <div class="intent-row">
-      <span class="intent-label">Reclamo por error</span>
-      <div class="intent-bar-bg"><div class="intent-bar-fill" style="width:38%;background:#2E52F5;"></div></div>
-      <span class="intent-pct">38%</span>
-    </div>
-  </div>
 
-  <div class="section-card mb24">
-    <div class="tickets-header">
-      <span>Últimos tickets</span>
-      <a href="#">Ver todos →</a>
-    </div>
-    <div class="ticket-row">
-      <div class="ticket-left">
-        <div class="ticket-icon tg">{TELEGRAM_SVG}</div>
-        <div>
-          <div class="ticket-id">#0247 · <span class="ticket-time">3 min</span></div>
-          <div class="ticket-msg">No me aparece el estado de mi pedido...</div>
-        </div>
+# ── TOP INTENCIONES NO RESUELTAS ───────────────────────────────────────────
+intents = data.get("top_unresolved_intents", [])
+intent_colors = ["#E8593C", "#F0A500", "#2E52F5", "#8892A8", "#A0B4FF"]
+
+if intents:
+    max_count = max(i["count"] for i in intents) if intents else 1
+    intent_rows = ""
+    for idx, intent in enumerate(intents):
+        pct = int(intent["count"] / max_count * 100)
+        color = intent_colors[idx % len(intent_colors)]
+        intent_rows += f"""
+        <div class="intent-row">
+          <span class="intent-label">{intent["intent"]}</span>
+          <div class="intent-bar-bg"><div class="intent-bar-fill" style="width:{pct}%;background:{color};"></div></div>
+          <span class="intent-pct">{intent["count"]}</span>
+        </div>"""
+
+    st.markdown(f"""
+    <div class="px">
+      <div class="section-card mb24">
+        <div class="section-title">Top intenciones no resueltas</div>
+        {intent_rows}
       </div>
-      <span class="tag tag-neg">negativo</span>
     </div>
-    <div class="ticket-row">
-      <div class="ticket-left">
-        <div class="ticket-icon wa"><i class="mdi mdi-whatsapp" style="color:#1D9E75;font-size:15px;"></i></div>
-        <div>
-          <div class="ticket-id">#0246 · <span class="ticket-time">8 min</span></div>
-          <div class="ticket-msg">Joyita, gracias! me ayudó mucho</div>
-        </div>
-      </div>
-      <span class="tag tag-pos">positivo</span>
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)

@@ -1,8 +1,13 @@
+"""
+Detalle de Ticket — Consume datos desde la API de FastAPI.
+Muestra chat real y análisis de la sesión.
+"""
 import streamlit as st
+import requests
 
-st.set_page_config(page_title="ConversaAI — Ticket #0247", page_icon="💬", layout="wide", initial_sidebar_state="expanded")
+API_BASE = "http://localhost:8000/api/v1/dashboard"
 
-TELEGRAM_SVG = """<svg width="14" height="13" viewBox="0 0 11 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M9.48532 0.0906039C7.5813 1.1182 2.29404 3.97121 0.397196 4.99465C0.141714 5.1326 -0.0121029 5.40396 0.000746782 5.69383C0.0139744 5.98333 0.191599 6.24031 0.458041 6.35445L3.01966 7.45385L3.0072 9.06044C3.00455 9.37299 3.19502 9.65531 3.48641 9.76945C3.77742 9.88396 4.10924 9.80724 4.32051 9.5767L5.40253 8.39453L8.1603 9.30723C8.3674 9.37601 8.59454 9.35145 8.78237 9.23996C8.97058 9.12885 9.10135 8.94177 9.14103 8.72673L10.5874 0.893329C10.6403 0.607234 10.5243 0.316231 10.2892 0.14465C10.0537 -0.026553 9.74118 -0.0473412 9.48532 0.0906039ZM9.7272 1.39031L8.39764 8.58954L5.40782 7.60011C5.26647 7.55325 5.11076 7.59407 5.01023 7.70367L3.76306 9.06611L3.77628 7.36277L9.7272 1.39031ZM0.755855 5.65981L3.31294 6.75695L8.6501 1.40014L0.755855 5.65981Z" fill="#4B6BFF"/></svg>"""
+st.set_page_config(page_title="ConversaAI — Detalle Ticket", page_icon="💬", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
@@ -24,7 +29,6 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 [data-testid="stHorizontalBlock"] { gap: 20px !important; padding: 0 24px 24px !important; align-items: flex-start !important; }
 [data-testid="column"] { padding: 0 !important; }
 
-/* SIDEBAR */
 [data-testid="stSidebar"] { background-color: #0D19B3 !important; width: 220px !important; min-width: 220px !important; }
 [data-testid="stSidebar"] > div:first-child { padding: 0 !important; background-color: #0D19B3 !important; }
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] { padding: 0 !important; gap: 0 !important; }
@@ -41,27 +45,16 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 .nav-btn.active i { color: #ffffff !important; }
 .sidebar-footer { border-top: 1px solid rgba(255,255,255,0.15); padding: 12px 8px; }
 
-/* TOPBAR */
 .topbar { background: #ffffff; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid #F0F2F8; margin-bottom: 24px; }
-.topbar-left { display: flex; align-items: center; gap: 6px; }
 .topbar-left h1 { font-size: 18px; font-weight: 600; color: #8892A8; margin: 0; }
 .topbar-left h1 span { color: #0A1172; }
-.topbar-right { display: flex; align-items: center; gap: 24px; }
-.topbar-date { font-size: 11px; color: #8892A8; }
-.topbar-avatar { width: 36px; height: 36px; border-radius: 50%; background: #D1F5E8; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #0A5C3F; }
-.badge-frustracion { display: flex; align-items: center; gap: 6px; background: #FDECEA; color: #E8593C; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; }
 
-/* CARD PRINCIPAL */
-.ticket-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(26,32,53,0.06); padding: 14px 14px; }
-
-/* HEADER TICKET */
+.ticket-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(26,32,53,0.06); padding: 14px; }
 .ticket-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid #F0F2F8; }
-.ticket-header-icon { width: 36px; height: 36px; border-radius: 8px; background: #EBF0FF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.ticket-header-info h2 { margin: 0 !important; padding: 0 !important; line-height: 1.4 !important; font-size: 14px; font-weight: 600; color: #1A2035; margin: 0; line-height: 1.3; }
-.ticket-header-info p  { margin: 0 !important; padding: 0 !important; line-height: 1.4 !important; margin-bottom: 12px !important; font-size: 11px; color: #8892A8; margin: 0 0 12px 0; line-height: 1.3; }
+.ticket-header-info h2 { margin: 0 !important; padding: 0 !important; font-size: 14px; font-weight: 600; color: #1A2035; }
+.ticket-header-info p  { margin: 0 0 12px 0 !important; padding: 0 !important; font-size: 11px; color: #8892A8; }
 .ticket-tags { display: flex; gap: 6px; flex-wrap: wrap; }
 
-/* CHAT */
 .chat-wrap { display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; }
 .msg-user { align-self: flex-start; }
 .msg-bot  { align-self: flex-end; }
@@ -69,18 +62,6 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 .msg-bubble-bot  { background: #2E52F5; border-radius: 12px 12px 2px 12px; padding: 10px 14px; font-size: 13px; color: #ffffff; max-width: 480px; }
 .msg-meta { font-size: 10px; color: #8892A8; margin-top: 4px; }
 
-/* PENDIENTE EMOCIONAL */
-.pendiente-wrap { margin-bottom: 16px; }
-.pendiente-label { font-size: 12px; color: #8892A8; margin-bottom: 8px; }
-.pendiente-bar { height: 8px; border-radius: 99px; background: linear-gradient(to right, #1D9E75, #F0A500, #E8593C); margin-bottom: 6px; }
-.pendiente-meta { display: flex; justify-content: space-between; font-size: 10px; color: #8892A8; }
-
-/* ALERT */
-.alert-warn { background: #FFF3CC; border-radius: 8px; padding: 12px 14px; margin-top: 4px; }
-.alert-warn p { font-size: 12px; color: #B07D00; margin: 0 0 4px 0; }
-.alert-warn a { font-size: 12px; color: #B07D00; font-weight: 700; }
-
-/* PANEL LATERAL */
 .panel-card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(26,32,53,0.06); padding: 20px; }
 .panel-title { font-size: 14px; font-weight: 600; color: #1A2035; margin: 0 0 20px 0; }
 .panel-row { margin-bottom: 4px; }
@@ -88,32 +69,34 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 .panel-row-value { font-size: 13px; font-weight: 600; color: #1A2035; }
 .panel-divider { height: 1px; background: #F0F2F8; margin: 4px 0 12px; }
 
-/* INSIGHT */
-.insight-card { background: #EBF0FF; border-radius: 10px; padding: 14px; margin-top: 16px; }
-.insight-header { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
-.insight-header span { font-size: 12px; font-weight: 600; color: #1228D4; }
-.insight-body { font-size: 12px; color: #2E3A56; line-height: 1.5; }
-
-/* TAGS */
 .tag { display: inline-block; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 99px; }
 .tag-frustracion { background: #FDECEA; color: #E8593C; }
+.tag-exito       { background: #D1F5E8; color: #1D9E75; }
+.tag-neutro      { background: #F0F2F8; color: #8892A8; }
 .tag-negativo    { background: #FDECEA; color: #E8593C; }
-.tag-es          { background: #FFF3CC; color: #B07D00; }
-.tag-canal-tg    { background: #EBF0FF; color: #2E52F5; font-weight: 600; padding: 5px 12px; border-radius: 99px; }
-.tag-idioma-es   { background: #FFF3CC; color: #7A5200; }
-.tag-no-match    { background: #FDECEA; color: #E8593C; }
+.tag-positivo    { background: #D1F5E8; color: #1D9E75; }
+.tag-neutral     { background: #F0F2F8; color: #8892A8; }
+.tag-idioma      { background: #FFF3CC; color: #B07D00; }
 .tag-intencion   { background: #EBF0FF; color: #2E52F5; }
+.tag-ia          { background: #FDECEA; color: #E8593C; }
+.no-data { padding: 40px; text-align: center; color: #8892A8; font-size: 14px; }
+
+.badge-res { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; padding: 6px 12px; border-radius: 8px; }
+.badge-FRUSTRATION { background: #FDECEA; color: #E8593C; }
+.badge-SUCCESS { background: #D1F5E8; color: #1D9E75; }
+.badge-NEUTRAL { background: #F0F2F8; color: #8892A8; }
 </style>
 """, unsafe_allow_html=True)
 
-# SIDEBAR
+
+# ── SIDEBAR ────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div class="sidebar-wrap">
         <div class="sidebar-brand"><h2>ConversaAI</h2><p>Panel de analítica</p></div>
         <span class="sidebar-menu-label">MENÚ</span>
         <div class="sidebar-nav">
-            <a class="nav-btn" href="#"><i class="mdi mdi-view-dashboard-outline"></i> Dashboard</a>
+            <a class="nav-btn" href="/"><i class="mdi mdi-view-dashboard-outline"></i> Dashboard</a>
             <a class="nav-btn active" href="#"><i class="mdi mdi-ticket-outline"></i> Tickets</a>
         </div>
         <div class="sidebar-footer">
@@ -122,141 +105,171 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-# TOPBAR
+
+# ── GET SESSION ID ─────────────────────────────────────────────────────────
+session_id = st.query_params.get("session_id", None)
+
+if not session_id:
+    st.markdown('<div class="no-data">Seleccioná un ticket desde la lista de tickets para ver el detalle.</div>', unsafe_allow_html=True)
+    st.stop()
+
+
+# ── FETCH DATA ─────────────────────────────────────────────────────────────
+@st.cache_data(ttl=30)
+def fetch_detail(sid: str) -> dict:
+    try:
+        resp = requests.get(f"{API_BASE}/tickets/{sid}", timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+
+data = fetch_detail(session_id)
+
+if not data or "error" in data:
+    st.markdown('<div class="no-data">⚠ Ticket no encontrado en el warehouse. Ejecutá el pipeline ETL primero.</div>', unsafe_allow_html=True)
+    st.stop()
+
+analysis = data["analysis"]
+tags = data.get("tags", [])
+messages = data.get("messages", [])
+
+sid_short = session_id[:8]
+resolution = analysis.get("resolution", "NEUTRAL")
+res_label = {"SUCCESS": "Éxito", "FRUSTRATION": "Frustración", "NEUTRAL": "Neutro"}.get(resolution, resolution)
+
+# ── TOPBAR ─────────────────────────────────────────────────────────────────
 st.markdown(f"""
 <div class="topbar">
   <div class="topbar-left">
-    <h1>Tickets / <span>#0247</span></h1>
+    <h1>Tickets / <span>#{sid_short}</span></h1>
   </div>
-  <div class="topbar-right">
-    <div class="badge-frustracion">
-      <i class="mdi mdi-alert" style="font-size:14px;"></i> Frustración detectada
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="badge-res badge-{resolution}">
+      <i class="mdi mdi-{"alert" if resolution == "FRUSTRATION" else "check-circle" if resolution == "SUCCESS" else "minus-circle"}" style="font-size:14px;"></i>
+      {res_label}
     </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
-# COLUMNAS PRINCIPALES
+
+# ── LAYOUT ─────────────────────────────────────────────────────────────────
 col_chat, col_panel = st.columns([2.2, 1])
 
 with col_chat:
+    # Tags header
+    intent = analysis.get("intent", "—").replace("_", " ").title()
+    sent_group = analysis.get("sentiment_group", "Neutral")
+    sent_cls = {"Positive": "tag-positivo", "Negative": "tag-negativo"}.get(sent_group, "tag-neutral")
+    sent_text = {"Positive": "Positivo", "Negative": "Negativo"}.get(sent_group, "Neutral")
+    lang = (analysis.get("language") or "—").upper()
+
+    tag_html = ""
+    for t in tags:
+        cat_cls = "tag-ia" if t.get("category") == "ia" else "tag-intencion"
+        tag_html += f'<span class="tag {cat_cls}">{t["name"]}</span> '
+
+    chat_html = ""
+    for msg in messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        time_str = msg.get("time", "")
+        role_label = "Usuario" if role == "user" else "Bot"
+
+        if role == "user":
+            chat_html += f'''
+            <div class="msg-user">
+              <div class="msg-bubble-user">{content}</div>
+              <div class="msg-meta">{role_label} · {time_str}</div>
+            </div>'''
+        else:
+            chat_html += f'''
+            <div class="msg-bot" style="display:flex;flex-direction:column;align-items:flex-end;">
+              <div class="msg-bubble-bot">{content}</div>
+              <div class="msg-meta">{role_label} · {time_str}</div>
+            </div>'''
+
     st.markdown(f"""
     <div class="ticket-card">
-
-      <!-- HEADER -->
       <div class="ticket-header">
-        <div class="ticket-header-icon">{TELEGRAM_SVG}</div>
         <div class="ticket-header-info">
-          <h2>Ticket #0247 — Telegram · Es</h2>
-          <p>Sesión: 14 May 2026 · 13:02 hs · 7 mensajes · Abandono por timeout (15 min)</p>
+          <h2>Ticket #{sid_short} — {analysis.get("language_name", "")} · {analysis.get("date", "")}</h2>
+          <p>{analysis.get("total_messages", 0)} mensajes · {analysis.get("duration_seconds", 0)}s de duración</p>
           <div class="ticket-tags">
-            <span class="tag tag-intencion">Consulta de estado</span>
-            <span class="tag tag-negativo">Negativo</span>
-            <span class="tag tag-es">Es</span>
-            <span class="tag tag-frustracion">Frustración</span>
+            <span class="tag tag-intencion">{intent}</span>
+            <span class="tag {sent_cls}">{sent_text}</span>
+            <span class="tag tag-idioma">{lang}</span>
+            {tag_html}
           </div>
         </div>
       </div>
-
-      <!-- CHAT -->
       <div class="chat-wrap">
-        <div class="msg-user">
-          <div class="msg-bubble-user">Hola, necesito saber el estado de mi pedido</div>
-          <div class="msg-meta">Usuario · 13:02</div>
-        </div>
-        <div class="msg-bot" style="display:flex;flex-direction:column;align-items:flex-end;">
-          <div class="msg-bubble-bot">Hola! Para consultarlo necesito tu número de pedido.</div>
-          <div class="msg-meta">Bot · 13:02</div>
-        </div>
-        <div class="msg-user">
-          <div class="msg-bubble-user">Ya te lo dije, es el 845-A</div>
-          <div class="msg-meta">Usuario · 13:04</div>
-        </div>
-        <div class="msg-bot" style="display:flex;flex-direction:column;align-items:flex-end;">
-          <div class="msg-bubble-bot">No encontré resultados. ¿Podés confirmar el número?</div>
-          <div class="msg-meta">Bot · 13:04</div>
-        </div>
-        <div class="msg-user">
-          <div class="msg-bubble-user">Esto no sirve para nada, quiero hablar con alguien</div>
-          <div class="msg-meta">Usuario · 13:07</div>
-        </div>
+        {chat_html if chat_html else '<div class="no-data">Sin mensajes disponibles</div>'}
       </div>
-
-      <!-- PENDIENTE EMOCIONAL -->
-      <div class="pendiente-wrap">
-        <div class="pendiente-label">Pendiente emocional de la sesión</div>
-        <div class="pendiente-bar"></div>
-        <div class="pendiente-meta">
-          <span>Neutral al inicio</span>
-          <span style="color:#E8593C;">Frustración al cierre</span>
-        </div>
-      </div>
-
-      <!-- ALERT -->
-      <div class="alert-warn">
-        <p>⚠ Clasificado como Frustración: último sentimiento negativo + loop de "no encontré" &gt;2 veces + timeout.</p>
-        <a href="#">Ver RF#10 y RF#11 del ERS.</a>
-      </div>
-
     </div>
     """, unsafe_allow_html=True)
 
+
 with col_panel:
+    res_cls = {"SUCCESS": "tag-exito", "FRUSTRATION": "tag-frustracion"}.get(resolution, "tag-neutro")
+
+    fb_text = "Sin feedback"
+    if analysis.get("positive_feedback", 0) > 0:
+        fb_text = f"👍 {analysis['positive_feedback']} positivos"
+    elif analysis.get("negative_feedback", 0) > 0:
+        fb_text = f"👎 {analysis['negative_feedback']} negativos"
+
     st.markdown(f"""
     <div class="panel-card">
       <div class="panel-title">Análisis de la sesión</div>
 
       <div class="panel-row">
         <div class="panel-row-label">Clasificación</div>
-        <span class="tag tag-frustracion">Frustración</span>
+        <span class="tag {res_cls}">{res_label}</span>
+      </div>
+      <div class="panel-divider"></div>
+
+      <div class="panel-row">
+        <div class="panel-row-label">Sentimiento</div>
+        <span class="tag {sent_cls}">{sent_text} ({analysis.get("sentiment_score", 0):.2f})</span>
+      </div>
+      <div class="panel-divider"></div>
+
+      <div class="panel-row">
+        <div class="panel-row-label">Intención detectada</div>
+        <span class="tag tag-intencion">{intent}</span>
       </div>
       <div class="panel-divider"></div>
 
       <div class="panel-row">
         <div class="panel-row-label">Mensajes totales</div>
-        <div class="panel-row-value">7 mensajes</div>
+        <div class="panel-row-value">{analysis.get("total_messages", 0)} mensajes</div>
       </div>
       <div class="panel-divider"></div>
 
       <div class="panel-row">
         <div class="panel-row-label">Duración</div>
-        <div class="panel-row-value">5 minutos</div>
-      </div>
-      <div class="panel-divider"></div>
-
-      <div class="panel-row">
-        <div class="panel-row-label">Canal</div>
-        <span class="tag tag-canal-tg">{TELEGRAM_SVG} &nbsp;Telegram</span>
+        <div class="panel-row-value">{analysis.get("duration_seconds", 0)}s</div>
       </div>
       <div class="panel-divider"></div>
 
       <div class="panel-row">
         <div class="panel-row-label">Idioma detectado</div>
-        <span class="tag tag-idioma-es">Español</span>
+        <span class="tag tag-idioma">{analysis.get("language_name", "—")}</span>
       </div>
       <div class="panel-divider"></div>
 
       <div class="panel-row">
-        <div class="panel-row-label">Último nodo</div>
-        <span class="tag tag-no-match">no_match x3</span>
+        <div class="panel-row-label">Abandono</div>
+        <div class="panel-row-value">{"Sí ⚠" if analysis.get("is_abandoned") else "No ✓"}</div>
       </div>
       <div class="panel-divider"></div>
 
       <div class="panel-row">
         <div class="panel-row-label">Feedback explícito</div>
-        <div class="panel-row-value" style="color:#8892A8;font-weight:400;">Sin feedback</div>
+        <div class="panel-row-value" style="color:#8892A8;font-weight:400;">{fb_text}</div>
       </div>
-
-      <!-- INSIGHT -->
-      <div class="insight-card">
-        <div class="insight-header">
-          <i class="mdi mdi-lightbulb-outline" style="color:#1228D4;font-size:16px;"></i>
-          <span>Insight de la IA</span>
-        </div>
-        <div class="insight-body">
-          El usuario repitió la consulta de estado 3 veces sin resolución. Patrón de loop detectado en nodo "no_match". Recomendación: revisar el flujo de búsqueda por número de pedido.
-        </div>
-      </div>
-
     </div>
     """, unsafe_allow_html=True)
