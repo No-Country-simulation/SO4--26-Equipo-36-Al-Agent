@@ -6,12 +6,12 @@ def load_global_css():
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://cdn.jsdelivr.net/npm/@mdi/font@7.2.96/css/materialdesignicons.min.css');
 
-html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"], .stApp, #root {
     font-family: 'Inter', sans-serif !important;
     background-color: #0F1117 !important;
 }
 
-#MainMenu, footer, header { visibility: hidden !important; display: none !important; }
+#MainMenu, footer, header, [data-testid="stHeader"] { visibility: hidden !important; display: none !important; height: 0 !important; margin: 0 !important; padding: 0 !important; }
 [data-testid="stToolbar"] { display: none !important; }
 [data-testid="collapsedControl"] { display: none !important; }
 [data-testid="stSidebarCollapseButton"] { display: none !important; }
@@ -19,9 +19,18 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 [data-testid="stDecoration"] { display: none !important; }
 
 /* GLOBALS PARA EXTENDER LA UI COMPLETAMENTE A LO ANCHO Y ALTO */
-.block-container { padding: 0 !important; max-width: 100% !important; }
+.block-container { padding: 0 !important; padding-top: 1.5rem !important; margin-top: 0 !important; max-width: 100% !important; }
+[data-testid="stMainBlockContainer"] { padding-top: 1.5rem !important; }
 [data-testid="stVerticalBlock"] { gap: 0 !important; }
 [data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] { gap: 12px !important; }
+
+/* Eliminar espacio fantasma generado por inyecciones de <style> */
+div[data-testid="stVerticalBlock"] > div:has(style) {
+    display: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
 
 /* Separación entre elementos horizontales generales */
 [data-testid="stHorizontalBlock"] { gap: 20px !important; padding: 0 40px !important; margin-bottom: 20px !important; }
@@ -54,7 +63,7 @@ div[data-testid="column"] { padding: 0 !important; }
 .logout-btn i { color: #E97358 !important; }
 
 /* ── TOPBAR (Transparente) ── */
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 32px 40px 24px; margin-bottom: 16px; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 0 40px; margin-bottom: 24px; position: relative; z-index: 99; }
 .topbar-left { display: flex; align-items: center; gap: 24px; }
 .topbar h1 { font-size: 24px; font-weight: 700; color: #F2F4F7; margin: 0; padding: 0; letter-spacing: -0.02em; }
 .topbar-title-sep { width: 1px; height: 24px; background: #282C38; }

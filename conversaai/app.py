@@ -21,67 +21,7 @@ st.set_page_config(
 
 from layout import load_global_css, render_sidebar, render_topbar
 
-# ── ESTILOS GLOBALES Y COMPONENTES UI ──────────────────────────────────────
-load_global_css()
-
-st.markdown("""
-<style>
-
-/* ── KPI CARDS ── */
-.kpi-grid { display: grid; gap: 20px; margin-bottom: 20px; }
-.grid-3 { grid-template-columns: repeat(3, 1fr); }
-.kpi-card { 
-    background: #1A1D24; border-radius: 24px; padding: 28px; 
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    display: flex; flex-direction: column; justify-content: space-between;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 1px solid rgba(255,255,255,0.02); position: relative; overflow: hidden;
-}
-.kpi-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
-.kpi-card.highlight { background: #D0ED57; box-shadow: 0 8px 32px rgba(208, 237, 87, 0.15); border: none; }
-
-.kpi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
-.kpi-icon-box { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-.kpi-label { font-size: 14px; font-weight: 600; color: #8A8F9E; }
-.highlight .kpi-label { color: #4A5426; }
-.kpi-value { font-size: 42px; font-weight: 800; color: #F2F4F7; margin-bottom: 12px; line-height: 1; letter-spacing: -0.03em; }
-.highlight .kpi-value { color: #16181F; }
-.kpi-meta  { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: #8A8F9E; }
-.highlight .kpi-meta { color: #16181F; opacity: 0.8; }
-.meta-icon { font-size: 18px; }
-
-/* Colores de Cajas de Iconos en Dark Mode */
-.bg-blue { background: rgba(155,169,255,0.15); } .c-blue { color: #9BA9FF; }
-.bg-purple { background: rgba(182,160,255,0.15); } .c-purple { color: #B6A0FF; }
-.bg-red { background: rgba(233,115,88,0.15); } .c-red-icon { color: #E97358; }
-.bg-orange { background: rgba(244,162,97,0.15); } .c-orange { color: #F4A261; }
-.bg-green { background: rgba(29,158,117,0.15); } .c-green-icon { color: #1D9E75; }
-.bg-dark { background: #16181F; } .c-lime { color: #D0ED57; }
-
-.c-green { color: #D0ED57; } .c-red { color: #E97358; } .c-amber { color: #F4A261; }
-
-/* ── CHARTS PLOTLY CSS ── */
-[data-testid="stPlotlyChart"] > div { 
-    background: #1A1D24 !important; 
-    border-radius: 24px !important; 
-    box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
-    border: 1px solid rgba(255,255,255,0.02) !important;
-    overflow: hidden !important;
-}
-
-/* ── INTENTS (Sección Inferior) ── */
-.section-card { background: #1A1D24; border-radius: 24px; padding: 32px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02); margin: 0 40px 40px; }
-.section-title { font-size: 18px; font-weight: 700; color: #F2F4F7; margin-bottom: 28px; }
-.intent-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
-.intent-row:last-child { margin-bottom: 0; }
-.intent-label { font-size: 14px; font-weight: 600; color: #F2F4F7; width: 180px; flex-shrink: 0; }
-.intent-bar-bg { flex: 1; height: 14px; background: #282C38; border-radius: 99px; overflow: hidden; }
-.intent-bar-fill { height: 100%; border-radius: 99px; }
-.intent-pct { font-size: 14px; font-weight: 700; color: #F2F4F7; width: 44px; text-align: right; }
-.no-data { padding: 40px; text-align: center; color: #8A8F9E; font-size: 14px; font-weight: 500; }
-</style>
-""", unsafe_allow_html=True)
-
+# ── LOS ESTILOS GLOBALES Y COMPONENTES UI ESTÁN AL FINAL DEL ARCHIVO ──
 
 # ── HELPER: Fetch data from API ───────────────────────────────────────────
 @st.cache_data(ttl=20)
@@ -97,14 +37,17 @@ def fetch_overview() -> dict:
 # ── SIDEBAR ────────────────────────────────────────────────────────────────
 render_sidebar(active_page="dashboard")
 
-
-# ── POLLING & ESTADO DE NOTIFICACIONES ─────────────────────────────────────
-st_autorefresh(interval=10000, key="dash_refresh")
-
 if "dash_last_count" not in st.session_state:
     st.session_state.dash_last_count = -1
 if "has_notifications" not in st.session_state:
     st.session_state.has_notifications = False
+
+# ── TOPBAR (Debe renderizarse ANTES de st_autorefresh para no heredar espacios fantasmas) ──
+today = datetime.now().strftime("%d/%m/%Y")
+render_topbar(subtitle="Panel de análisis", has_notifications=st.session_state.has_notifications)
+
+# ── POLLING & ESTADO DE NOTIFICACIONES ─────────────────────────────────────
+st_autorefresh(interval=10000, key="dash_refresh")
 
 # ── FETCH DATA ─────────────────────────────────────────────────────────────
 data = fetch_overview()
@@ -115,10 +58,6 @@ if data:
         st.toast("¡Nuevo ticket clasificado!", icon="🔔")
         st.session_state.has_notifications = True
     st.session_state.dash_last_count = current_count
-
-# ── TOPBAR ─────────────────────────────────────────────────────────────────
-today = datetime.now().strftime("%d/%m/%Y")
-render_topbar(subtitle="Panel de análisis", has_notifications=st.session_state.has_notifications)
 
 if not data:
     st.markdown('<div class="px"><div class="no-data">⚠ No se pudo conectar con la API.</div></div>', unsafe_allow_html=True)
@@ -254,3 +193,53 @@ if intents:
 
     html_block = f'<div class="section-card"><div class="section-title">Top intenciones no resueltas</div>{intent_rows}</div>'
     st.markdown(html_block, unsafe_allow_html=True)
+
+# ── ESTILOS GLOBALES AL FINAL ──
+load_global_css()
+st.markdown("""
+<style>
+/* ── KPI CARDS ── */
+.kpi-grid { display: grid; gap: 20px; margin-bottom: 20px; }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.kpi-card { 
+    background: #1A1D24; border-radius: 24px; padding: 28px; 
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column; justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(255,255,255,0.02); position: relative; overflow: hidden;
+}
+.kpi-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05); }
+.kpi-card.highlight { background: #D0ED57; box-shadow: 0 8px 32px rgba(208, 237, 87, 0.15); border: none; }
+.kpi-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.kpi-icon-box { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.kpi-label { font-size: 14px; font-weight: 600; color: #8A8F9E; }
+.highlight .kpi-label { color: #4A5426; }
+.kpi-value { font-size: 42px; font-weight: 800; color: #F2F4F7; margin-bottom: 12px; line-height: 1; letter-spacing: -0.03em; }
+.highlight .kpi-value { color: #16181F; }
+.kpi-meta  { font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; color: #8A8F9E; }
+.highlight .kpi-meta { color: #16181F; opacity: 0.8; }
+.meta-icon { font-size: 18px; }
+.bg-purple { background: rgba(155, 169, 255, 0.1); } .c-purple { color: #9BA9FF; }
+.bg-red { background: rgba(233, 115, 88, 0.1); } .c-red-icon { color: #E97358; }
+.bg-dark { background: rgba(22, 24, 31, 0.1); } .c-lime { color: #16181F; }
+.bg-orange { background: rgba(244, 162, 97, 0.1); } .c-orange { color: #F4A261; }
+.bg-green { background: rgba(29, 158, 117, 0.1); } .c-green-icon { color: #1D9E75; }
+.c-green { color: #1D9E75 !important; }
+.c-red { color: #E97358 !important; }
+/* ── CHARTS SECTIONS ── */
+.chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+.section-card { background: #1A1D24; border-radius: 24px; padding: 32px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.02); }
+.section-title { font-size: 18px; font-weight: 600; color: #F2F4F7; margin-bottom: 24px; letter-spacing: -0.01em; }
+
+/* Plotly overrides */
+.js-plotly-plot .plotly .modebar { display: none !important; }
+.js-plotly-plot .plotly .main-svg { border-radius: 12px; }
+
+/* ── INTENT BARS ── */
+.intent-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.intent-label { font-size: 13px; font-weight: 500; color: #F2F4F7; width: 140px; }
+.intent-bar-bg { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 99px; margin: 0 16px; overflow: hidden; }
+.intent-bar-fill { height: 100%; border-radius: 99px; }
+.intent-pct { font-size: 12px; font-weight: 700; color: #8A8F9E; width: 32px; text-align: right; }
+</style>
+""", unsafe_allow_html=True)

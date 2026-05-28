@@ -32,9 +32,262 @@ def clear_ticket():
 
 from layout import load_global_css, render_sidebar, render_topbar
 
-# ── ESTILOS GLOBALES Y COMPONENTES UI ──────────────────────────────────────
-load_global_css()
+# ── LOS ESTILOS GLOBALES FUERON MOVIDOS AL FINAL PARA EVITAR ESPACIOS FANTASMAS ──
 
+
+# ── SIDEBAR ────────────────────────────────────────────────────────────────
+render_sidebar(active_page="tickets")
+
+# ── FETCH DATA ─────────────────────────────────────────────────────────────
+def fetch_tickets(params: dict) -> dict:
+    try:
+        resp = requests.get(f"{API_BASE}/tickets", params=params, timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+def fetch_ticket_detail(session_id: str) -> dict:
+    try:
+        resp = requests.get(f"{API_BASE}/tickets/{session_id}", timeout=10)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception:
+        return None
+
+# ── MAIN VIEW CONTROL ───────────────────────────────────────────────────────
+if st.session_state.selected_ticket is None:
+    # ── VISTA 1: LISTADO ──
+    render_topbar(subtitle="Listado de tickets", has_notifications=st.session_state.has_notifications)
+
+    col_search, col_filter, _ = st.columns([4, 2.5, 5.5])
+
+    with col_search:
+        busqueda = st.text_input("buscar", placeholder="Buscar ticket...", label_visibility="collapsed")
+    with col_filter:
+        try:
+            with st.popover("Filtros", use_container_width=True):
+                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:4px; color:#8A8F9E;'>Resolución</div>", unsafe_allow_html=True)
+                res_opts = ["Todas", "SUCCESS", "NEUTRAL", "FRUSTRATION", "ABANDONED"]
+                res_filter = st.radio("Resolución", res_opts, label_visibility="collapsed")
+                
+                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Idioma</div>", unsafe_allow_html=True)
+                lang_opts = ["Todos", "es", "pt", "en"]
+                lang_filter = st.radio("Idioma", lang_opts, label_visibility="collapsed")
+                
+                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Sentimiento</div>", unsafe_allow_html=True)
+                sentiment_opts = ["Todos", "Positive", "Neutral", "Negative"]
+                sent_filter = st.radio("Sentimiento", sentiment_opts, label_visibility="collapsed")
+                
+                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Tags</div>", unsafe_allow_html=True)
+                tag_opts = ["VIP", "Urgente", "Devolución", "Soporte", "Queja"]
+                tags_filter = st.multiselect("Tags", tag_opts, label_visibility="collapsed")
+                
+        except AttributeError:
+            with st.expander("Filtros"):
+                res_opts = ["Todas", "SUCCESS", "NEUTRAL", "FRUSTRATION", "ABANDONED"]
+                res_filter = st.radio("Resolución", res_opts)
+                lang_opts = ["Todos", "es", "pt", "en"]
+                lang_filter = st.radio("Idioma", lang_opts)
+                sentiment_opts = ["Todos", "Positive", "Neutral", "Negative"]
+                sent_filter = st.radio("Sentimiento", sentiment_opts)
+                tag_opts = ["VIP", "Urgente", "Devolución", "Soporte", "Queja"]
+                tags_filter = st.multiselect("Tags", tag_opts)
+
+    st_autorefresh(interval=10000, key="tickets_refresh")
+
+    params = {"page": 1, "page_size": 100}
+    
+    # ── LLAMADA API ──
+    data = fetch_tickets(params)
+
+    if not data:
+        st.error("⚠ No se pudo conectar con la API")
+        st.stop()
+
+    tickets = data.get("tickets", [])
+    
+    # Ordenar por fecha descendente o session_id
+    tickets = sorted(tickets, key=lambda t: t.get("created_at", t.get("date", t.get("session_id", ""))), reverse=True)
+
+    # ── DETECCIÓN DE TICKETS NUEVOS ──
+    current_ids = set(t.get("session_id") for t in tickets)
+    if st.session_state.last_ticket_ids:
+        new_ids = current_ids - st.session_state.last_ticket_ids
+        if new_ids:
+            st.session_state.new_ticket_ids.update(new_ids)
+            st.toast("¡Nuevos tickets recibidos!", icon="🔔")
+            st.session_state.has_notifications = True
+    
+    st.session_state.last_ticket_ids = current_ids
+
+    # ── FILTRADO LOCAL EN TIEMPO REAL ──
+    if busqueda:
+        b = busqueda.lower()
+        tickets = [t for t in tickets if b in str(t.get("intent", "")).lower() or b in str(t.get("session_id", "")).lower()]
+
+    if res_filter != "Todas":
+        tickets = [t for t in tickets if str(t.get("resolution", "")) == res_filter]
+        
+    if lang_filter != "Todos":
+        tickets = [t for t in tickets if str(t.get("language", "es")).lower() == lang_filter.lower()]
+        
+    if sent_filter != "Todos":
+        # Manejo simple: a veces el API no trae sentiment, usamos get
+        tickets = [t for t in tickets if str(t.get("sentiment", "Neutral")).lower() == sent_filter.lower()]
+        
+    if tags_filter:
+        # Si el API no provee tags por defecto, usamos un mock de lista vacía
+        tickets = [t for t in tickets if any(tag in t.get("tags", []) for tag in tags_filter)]
+
+    total = len(tickets)
+    frust = len([t for t in tickets if t.get("resolution") == "FRUSTRATION"])
+    aban = len([t for t in tickets if t.get("resolution") == "ABANDONED"])
+    exit = len([t for t in tickets if t.get("resolution") == "SUCCESS"])
+    neutral = len([t for t in tickets if t.get("resolution") == "NEUTRAL"])
+
+    st.markdown(f"""
+    <div class="px">
+        <div class="tickets-summary">
+            <div class="summary-pill">Total <span>{total}</span></div>
+            <div class="summary-pill">Éxito <span>{exit}</span></div>
+            <div class="summary-pill">Neutral <span>{neutral}</span></div>
+            <div class="summary-pill">Frustración <span>{frust}</span></div>
+            <div class="summary-pill">Abandono <span>{aban}</span></div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if not tickets:
+        st.info("No se encontraron tickets.")
+    else:
+        # Deduplicar tickets por session_id para evitar StreamlitDuplicateElementKey
+        seen_sids = set()
+        unique_tickets = []
+        for t in tickets:
+            s_id = str(t.get("session_id", ""))
+            if s_id not in seen_sids:
+                seen_sids.add(s_id)
+                unique_tickets.append(t)
+                
+        for t in unique_tickets:
+            sid = str(t.get("session_id", ""))
+            sid_short = sid[:4]
+            date_str = t.get("date", "hace un momento")
+            intent = t.get("intent", "Sin clasificar").replace("_", " ").capitalize()
+            res = t.get("resolution", "")
+            icon = "mdi-message-text-outline"
+            is_new = sid in st.session_state.new_ticket_ids
+            badge_html = '<span class="ticket-new-badge">NUEVO</span>' if is_new else ""
+            card_class = "ticket-card is-new" if is_new else "ticket-card"
+            
+            c_card, c_btn = st.columns([11, 1])
+            with c_card:
+                st.markdown(f"""
+                <div class="{card_class} ticket-row-container">
+                    <div class="ticket-main">
+                        <div class="ticket-icon"><i class="mdi {icon}"></i></div>
+                        <div class="ticket-info">
+                            <div class="ticket-id">#{sid_short} {badge_html} <span class="ticket-time">• {date_str}</span></div>
+                            <div class="ticket-intent">{intent}</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            with c_btn:
+                st.button("›", key=f"btn_{sid}", on_click=set_ticket, args=(sid,))
+
+else:
+    # ── VISTA 2: DETALLE DEL TICKET ──
+    sid = st.session_state.selected_ticket
+    sid_short = sid[:4]
+    
+    render_topbar(subtitle=f"Chat de ticket #{sid_short}", has_notifications=st.session_state.has_notifications)
+
+    t_data = fetch_ticket_detail(sid)
+    
+    if not t_data:
+        st.button("← Volver a lista", on_click=clear_ticket, key="btn_back_error")
+        st.error("No se pudo cargar el detalle del ticket.")
+    else:
+        an = t_data.get("analysis", {})
+        resolution = an.get("resolution", "")
+        
+        # Removed detail-breadcrumb-card
+        col_left, col_right = st.columns([1, 2.5], gap="large")
+
+        with col_left:
+            st.button("← Volver a lista", on_click=clear_ticket, key="btn_back")
+            st.markdown('<div style="height: 24px;"></div>', unsafe_allow_html=True)
+            
+            date_fmt = an.get("date", "Reciente")
+            session_meta = f"Sesión: {date_fmt} · {an.get('total_messages', 0)} mensajes"
+            card_html = f"""<div class="card">
+<div class="card-title" style="margin-bottom: 4px;">Datos del ticket</div>
+<div style="font-size: 13px; color: #8A8F9E; margin-bottom: 24px;">{session_meta}</div>"""
+            
+            tags = t_data.get("tags", [])
+            tags_html = " ".join([f'<span class="ticket-new-badge">{tag.get("name", "")}</span>' for tag in tags]) if tags else "Sin tags"
+            
+            pos = an.get("positive_feedback", 0)
+            neg = an.get("negative_feedback", 0)
+            stars_text = "⭐⭐⭐⭐⭐" if pos > neg else ("⭐" if neg > pos else "⭐⭐⭐")
+            
+            score = an.get("sentiment_score", 0)
+            slope = "Estable" if -0.3 < score < 0.3 else ("Descendente 📉" if score <= -0.3 else "Ascendente 📈")
+
+            datos = [
+                ("Clasificación", an.get("resolution", "Desconocido").capitalize()),
+                ("Sentimiento", f"{an.get('sentiment_group', 'Neutral')} ({score})"),
+                ("Pendiente emocional", slope),
+                ("Tags", tags_html),
+                ("Idioma", an.get("language_name", "Español")),
+                ("Último nodo", "No_match"),
+                ("Mensajes totales", f"{an.get('total_messages', 0)} mensajes"),
+                ("Duración", f"{int(an.get('duration_seconds', 0)/60)} minutos"),
+                ("Feedback final", stars_text)
+            ]
+            
+            for label, val in datos:
+                card_html += f"""<div class="data-row">
+<div class="data-label">{label}</div>
+<div class="data-value">{val}</div>
+</div>"""
+            
+            card_html += "</div>"
+            st.markdown(card_html, unsafe_allow_html=True)
+
+        with col_right:
+            chat_html = """<div class="card">
+<div class="chat-container">"""
+            
+            messages = t_data.get("messages", [])
+            for m in messages:
+                role = m.get("role", "user")
+                cls_role = "user" if role == "user" else "bot"
+                sender_name = "Usuario" if role == "user" else "Bot"
+                
+                fb = m.get("feedback")
+                fb_html = ""
+                if fb == "positive":
+                    fb_html = '<span style="color:#D0ED57; margin-left:6px;"><i class="mdi mdi-thumb-up"></i></span>'
+                elif fb == "negative":
+                    fb_html = '<span style="color:#E97358; margin-left:6px;"><i class="mdi mdi-thumb-down"></i></span>'
+                else:
+                    fb_html = '<span style="color:#62687A; margin-left:6px; font-style:italic;">(Sin feedback)</span>'
+                
+                chat_html += f"""<div class="bubble-row {cls_role}">
+<div>
+<div class="bubble {cls_role}">{m.get('content', '')}</div>
+<div class="bubble-time">{sender_name} · {m.get('time', '')} {fb_html}</div>
+</div>
+</div>"""
+            
+            chat_html += "</div></div>"
+            st.markdown(chat_html, unsafe_allow_html=True)
+
+# ── ESTILOS GLOBALES AL FINAL PARA EVITAR ESPACIOS FANTASMAS ──
+load_global_css()
 st.markdown("""
 <style>
 /* ── SEARCH & FILTERS ── */
@@ -200,13 +453,22 @@ div[data-baseweb="popover"] > div:has([role="listbox"]) {
 .ticket-time { font-size: 13px; font-weight: 400; color: #8A8F9E; }
 .ticket-intent { font-size: 14px; color: #A3A8B8; }
 
-/* Chevron Button */
+/* Volver a lista Button (Default stButton style) */
 .stButton button { 
+    width: max-content !important; height: auto !important; padding: 8px 16px !important; 
+    border-radius: 8px !important; background: #1A1D24 !important; color: #F2F4F7 !important; 
+    font-size: 14px !important; font-weight: 500 !important; border: 1px solid rgba(255,255,255,0.05) !important; 
+}
+.stButton button * { white-space: nowrap !important; }
+.stButton button:hover { background: #282C38 !important; color: #F2F4F7 !important; }
+
+/* Chevron Button (Only inside columns of the list) */
+div[data-testid="column"] .stButton button { 
     background: transparent !important; border: none !important; color: #8A8F9E !important; 
     box-shadow: none !important; width: 40px !important; height: 40px !important; padding: 0 !important;
     border-radius: 50% !important; display: flex; align-items: center; justify-content: center; font-size: 24px !important;
 }
-.stButton button:hover { background: rgba(255,255,255,0.05) !important; color: #F2F4F7 !important; }
+div[data-testid="column"] .stButton button:hover { background: rgba(255,255,255,0.05) !important; color: #F2F4F7 !important; }
 
 /* ── TICKET DETAIL ── */
 .detail-breadcrumb-card { background: #1A1D24; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; margin-bottom: 24px; border: 1px solid rgba(255,255,255,0.02); }
@@ -246,283 +508,5 @@ div[data-baseweb="popover"] > div:has([role="listbox"]) {
 .gradient-label { font-size: 13px; font-weight: 500; color: #8A8F9E; margin-bottom: 12px; }
 .gradient-bar { height: 8px; border-radius: 99px; background: linear-gradient(90deg, #A3A8B8 0%, #D0ED57 30%, #F4A261 70%, #E97358 100%); width: 100%; position: relative; }
 .gradient-labels { display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #8A8F9E; font-weight: 400; }
-
-.btn-back-wrap { margin-bottom: 16px; }
-.btn-back-wrap button { width: auto !important; height: auto !important; padding: 8px 16px !important; border-radius: 8px !important; background: #1A1D24 !important; color: #F2F4F7 !important; font-size: 14px !important; font-weight: 500 !important; border: 1px solid rgba(255,255,255,0.05) !important; }
-.btn-back-wrap button:hover { background: #282C38 !important; }
 </style>
 """, unsafe_allow_html=True)
-
-
-# ── SIDEBAR ────────────────────────────────────────────────────────────────
-render_sidebar(active_page="tickets")
-
-# ── FETCH DATA ─────────────────────────────────────────────────────────────
-def fetch_tickets(params: dict) -> dict:
-    try:
-        resp = requests.get(f"{API_BASE}/tickets", params=params, timeout=10)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception:
-        return None
-
-def fetch_ticket_detail(session_id: str) -> dict:
-    try:
-        resp = requests.get(f"{API_BASE}/tickets/{session_id}", timeout=10)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception:
-        return None
-
-# ── MAIN VIEW CONTROL ───────────────────────────────────────────────────────
-if st.session_state.selected_ticket is None:
-    # ── VISTA 1: LISTADO ──
-    # No render_topbar again here, it is rendered above.
-
-    col_search, col_filter, _ = st.columns([4, 2.5, 5.5])
-
-    with col_search:
-        busqueda = st.text_input("buscar", placeholder="Buscar ticket...", label_visibility="collapsed")
-    with col_filter:
-        try:
-            with st.popover("Filtros", use_container_width=True):
-                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:4px; color:#8A8F9E;'>Resolución</div>", unsafe_allow_html=True)
-                res_opts = ["Todas", "SUCCESS", "NEUTRAL", "FRUSTRATION", "ABANDONED"]
-                res_filter = st.radio("Resolución", res_opts, label_visibility="collapsed")
-                
-                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Idioma</div>", unsafe_allow_html=True)
-                lang_opts = ["Todos", "es", "pt", "en"]
-                lang_filter = st.radio("Idioma", lang_opts, label_visibility="collapsed")
-                
-                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Sentimiento</div>", unsafe_allow_html=True)
-                sentiment_opts = ["Todos", "Positive", "Neutral", "Negative"]
-                sent_filter = st.radio("Sentimiento", sentiment_opts, label_visibility="collapsed")
-                
-                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Tags</div>", unsafe_allow_html=True)
-                tag_opts = ["VIP", "Urgente", "Devolución", "Soporte", "Queja"]
-                tags_filter = st.multiselect("Tags", tag_opts, label_visibility="collapsed")
-                
-        except AttributeError:
-            with st.expander("Filtros"):
-                res_opts = ["Todas", "SUCCESS", "NEUTRAL", "FRUSTRATION", "ABANDONED"]
-                res_filter = st.radio("Resolución", res_opts)
-                lang_opts = ["Todos", "es", "pt", "en"]
-                lang_filter = st.radio("Idioma", lang_opts)
-                sentiment_opts = ["Todos", "Positive", "Neutral", "Negative"]
-                sent_filter = st.radio("Sentimiento", sentiment_opts)
-                tag_opts = ["VIP", "Urgente", "Devolución", "Soporte", "Queja"]
-                tags_filter = st.multiselect("Tags", tag_opts)
-
-    st_autorefresh(interval=10000, key="tickets_refresh")
-
-    params = {"page": 1, "page_size": 100}
-    
-    # ── LLAMADA API ──
-    data = fetch_tickets(params)
-
-    if not data:
-        st.error("⚠ No se pudo conectar con la API")
-        st.stop()
-
-    tickets = data.get("tickets", [])
-    
-    # Ordenar por fecha descendente o session_id
-    tickets = sorted(tickets, key=lambda t: t.get("created_at", t.get("date", t.get("session_id", ""))), reverse=True)
-
-    # ── DETECCIÓN DE TICKETS NUEVOS ──
-    current_ids = set(t.get("session_id") for t in tickets)
-    if st.session_state.last_ticket_ids:
-        new_ids = current_ids - st.session_state.last_ticket_ids
-        if new_ids:
-            st.session_state.new_ticket_ids.update(new_ids)
-            st.toast("¡Nuevos tickets recibidos!", icon="🔔")
-            st.session_state.has_notifications = True
-    
-    st.session_state.last_ticket_ids = current_ids
-
-    render_topbar(subtitle="Listado de tickets", has_notifications=st.session_state.has_notifications)
-    
-    # ── FILTRADO LOCAL EN TIEMPO REAL ──
-    if busqueda:
-        b = busqueda.lower()
-        tickets = [t for t in tickets if b in str(t.get("intent", "")).lower() or b in str(t.get("session_id", "")).lower()]
-
-    if res_filter != "Todas":
-        tickets = [t for t in tickets if str(t.get("resolution", "")) == res_filter]
-        
-    if lang_filter != "Todos":
-        tickets = [t for t in tickets if str(t.get("language", "es")).lower() == lang_filter.lower()]
-        
-    if sent_filter != "Todos":
-        # Manejo simple: a veces el API no trae sentiment, usamos get
-        tickets = [t for t in tickets if str(t.get("sentiment", "Neutral")).lower() == sent_filter.lower()]
-        
-    if tags_filter:
-        # Si el API no provee tags por defecto, usamos un mock de lista vacía
-        tickets = [t for t in tickets if any(tag in t.get("tags", []) for tag in tags_filter)]
-
-    total = len(tickets)
-    frust = len([t for t in tickets if t.get("resolution") == "FRUSTRATION"])
-    aban = len([t for t in tickets if t.get("resolution") == "ABANDONED"])
-    exit = len([t for t in tickets if t.get("resolution") == "SUCCESS"])
-    neutral = len([t for t in tickets if t.get("resolution") == "NEUTRAL"])
-
-    st.markdown(f"""
-    <div class="px">
-        <div class="tickets-summary">
-            <div class="summary-pill">Total <span>{total}</span></div>
-            <div class="summary-pill">Éxito <span>{exit}</span></div>
-            <div class="summary-pill">Neutral <span>{neutral}</span></div>
-            <div class="summary-pill">Frustración <span>{frust}</span></div>
-            <div class="summary-pill">Abandono <span>{aban}</span></div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    if not tickets:
-        st.info("No se encontraron tickets.")
-    else:
-        # Deduplicar tickets por session_id para evitar StreamlitDuplicateElementKey
-        seen_sids = set()
-        unique_tickets = []
-        for t in tickets:
-            s_id = str(t.get("session_id", ""))
-            if s_id not in seen_sids:
-                seen_sids.add(s_id)
-                unique_tickets.append(t)
-                
-        for t in unique_tickets:
-            sid = str(t.get("session_id", ""))
-            sid_short = sid[:4]
-            date_str = t.get("date", "hace un momento")
-            intent = t.get("intent", "Sin clasificar").replace("_", " ").capitalize()
-            res = t.get("resolution", "")
-            icon = "mdi-message-text-outline"
-            is_new = sid in st.session_state.new_ticket_ids
-            badge_html = '<span class="ticket-new-badge">NUEVO</span>' if is_new else ""
-            card_class = "ticket-card is-new" if is_new else "ticket-card"
-            
-            c_card, c_btn = st.columns([11, 1])
-            with c_card:
-                st.markdown(f"""
-                <div class="{card_class} ticket-row-container">
-                    <div class="ticket-main">
-                        <div class="ticket-icon"><i class="mdi {icon}"></i></div>
-                        <div class="ticket-info">
-                            <div class="ticket-id">#{sid_short} {badge_html} <span class="ticket-time">• {date_str}</span></div>
-                            <div class="ticket-intent">{intent}</div>
-                        </div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            with c_btn:
-                st.button("›", key=f"btn_{sid}", on_click=set_ticket, args=(sid,))
-
-else:
-    # ── VISTA 2: DETALLE DEL TICKET ──
-    sid = st.session_state.selected_ticket
-    sid_short = sid[:4]
-    
-    render_topbar(subtitle=f"Chat de ticket #{sid_short}", has_notifications=st.session_state.has_notifications)
-
-    t_data = fetch_ticket_detail(sid)
-    
-    st.markdown('<div class="btn-back-wrap">', unsafe_allow_html=True)
-    st.button("← Volver a lista", on_click=clear_ticket, key="btn_back")
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    if not t_data:
-        st.error("No se pudo cargar el detalle del ticket.")
-    else:
-        an = t_data.get("analysis", {})
-        resolution = an.get("resolution", "")
-        
-        badge_html = ""
-        if resolution == "FRUSTRATION":
-            badge_html = '<div class="badge-frustration"><i class="mdi mdi-alert-outline"></i> Frustración detectada</div>'
-            
-        st.markdown(f"""
-            <div class="detail-breadcrumb-card">
-                <div class="breadcrumb">Tickets / #{sid_short}</div>
-                {badge_html}
-            </div>
-        """, unsafe_allow_html=True)
-
-        col_left, col_right = st.columns([1, 2.5], gap="large")
-
-        with col_left:
-            st.markdown("""<div class="card">
-            <div class="card-title">Datos del ticket</div>""", unsafe_allow_html=True)
-            
-            tags = t_data.get("tags", [])
-            tags_html = " ".join([f'<span class="ticket-new-badge">{tag.get("name", "")}</span>' for tag in tags]) if tags else "Sin tags"
-            
-            pos = an.get("positive_feedback", 0)
-            neg = an.get("negative_feedback", 0)
-            stars_text = "⭐⭐⭐⭐⭐" if pos > neg else ("⭐" if neg > pos else "⭐⭐⭐")
-            
-            score = an.get("sentiment_score", 0)
-            slope = "Estable" if -0.3 < score < 0.3 else ("Descendente 📉" if score <= -0.3 else "Ascendente 📈")
-
-            datos = [
-                ("Clasificación", an.get("resolution", "Desconocido").capitalize()),
-                ("Sentimiento", f"{an.get('sentiment_group', 'Neutral')} ({score})"),
-                ("Pendiente emocional", slope),
-                ("Tags", tags_html),
-                ("Idioma", an.get("language_name", "Español")),
-                ("Último nodo", "No_match"),
-                ("Mensajes totales", f"{an.get('total_messages', 0)} mensajes"),
-                ("Duración", f"{int(an.get('duration_seconds', 0)/60)} minutos"),
-                ("Feedback final", stars_text)
-            ]
-            
-            for label, val in datos:
-                st.markdown(f"""
-                <div class="data-row">
-                    <div class="data-label">{label}</div>
-                    <div class="data-value">{val}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        with col_right:
-            date_fmt = an.get("date", "Reciente")
-            st.markdown(f"""
-            <div class="card">
-                <div class="chat-header">
-                    Ticket #{sid_short} — Telegram · {an.get("language", "Es").upper()}
-                    <span class="chat-meta">Sesión: {date_fmt} · {an.get("total_messages", 0)} mensajes</span>
-                </div>
-                <div class="chat-container">
-            """, unsafe_allow_html=True)
-            
-            messages = t_data.get("messages", [])
-            for m in messages:
-                role = m.get("role", "user")
-                cls_role = "user" if role == "user" else "bot"
-                sender_name = "Usuario" if role == "user" else "Bot"
-                
-                fb = m.get("feedback")
-                fb_html = ""
-                if fb == "positive":
-                    fb_html = '<span style="color:#D0ED57; margin-left:6px;"><i class="mdi mdi-thumb-up"></i></span>'
-                elif fb == "negative":
-                    fb_html = '<span style="color:#E97358; margin-left:6px;"><i class="mdi mdi-thumb-down"></i></span>'
-                else:
-                    fb_html = '<span style="color:#62687A; margin-left:6px; font-style:italic;">(Sin feedback)</span>'
-                
-                st.markdown(f"""
-                <div class="bubble-row {cls_role}">
-                    <div>
-                        <div class="bubble {cls_role}">{m.get('content', '')}</div>
-                        <div class="bubble-time">{sender_name} · {m.get('time', '')} {fb_html}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            st.markdown("""
-            </div>
-            """, unsafe_allow_html=True)
