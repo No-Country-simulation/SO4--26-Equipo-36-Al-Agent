@@ -16,7 +16,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 
-# ── Enums ─────────────────────────────────────────────────────────────────
+# Enums
 
 class SentimentLabel(str, Enum):
     POS = "POS"
@@ -30,7 +30,7 @@ class ResolutionType(str, Enum):
     NEUTRAL = "NEUTRAL"
 
 
-# ── Etapa 1: Extract ─────────────────────────────────────────────────────
+# Etapa 1: Extract
 
 class ExtractedMessage(BaseModel):
     """Mensaje individual extraído del OLTP."""
@@ -55,7 +55,7 @@ class ExtractedSession(BaseModel):
     star_rating: Optional[int] = None
 
 
-# ── Etapa 2: Transform (Clean) ───────────────────────────────────────────
+# Etapa 2: Transform (Clean)
 
 class CleanedSession(ExtractedSession):
     """Sesión con texto limpio (PII removida) y texto de usuario concatenado."""
@@ -63,7 +63,7 @@ class CleanedSession(ExtractedSession):
     total_messages: int = 0
 
 
-# ── Etapa 3: Classify ────────────────────────────────────────────────────
+# Etapa 3: Classify
 
 class ClassifiedSession(CleanedSession):
     """Sesión con clasificación de sentimiento (pysentimiento)."""
@@ -73,7 +73,7 @@ class ClassifiedSession(CleanedSession):
     intent_category: str = "general"
 
 
-# ── Etapa 4: Resolve ─────────────────────────────────────────────────────
+# Etapa 4: Resolve
 
 class ResolvedSession(ClassifiedSession):
     """Sesión con resolución final y métricas consolidadas para el warehouse."""
@@ -83,7 +83,7 @@ class ResolvedSession(ClassifiedSession):
     auto_tags: list[str] = Field(default_factory=list)
 
 
-# ── Resultado del Pipeline ────────────────────────────────────────────────
+# Resultado del Pipeline
 
 class PipelineResult(BaseModel):
     """Resumen de la ejecución completa del pipeline ETL."""

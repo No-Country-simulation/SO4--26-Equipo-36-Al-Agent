@@ -73,6 +73,22 @@ services:
     volumes:
       - pgadmin_data:/var/lib/pgadmin
 
+  # Streamlit Dashboard (Analítica)
+  dashboard:
+    build:
+      context: ../conversaai
+      dockerfile: Dockerfile
+    container_name: conversa-ai-dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE=http://app:8000/api/v1/dashboard
+    depends_on:
+      - app
+    networks:
+      - conversa-network
+
+
 volumes:
   postgres_data:
     driver: local

@@ -4,8 +4,9 @@ Muestra chat real y análisis de la sesión.
 """
 import streamlit as st
 import requests
+import os
 
-API_BASE = "http://localhost:8000/api/v1/dashboard"
+API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1/dashboard")
 
 st.set_page_config(page_title="ConversaAI — Detalle Ticket", page_icon="💬", layout="wide", initial_sidebar_state="expanded")
 

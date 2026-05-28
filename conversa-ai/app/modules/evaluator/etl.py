@@ -280,7 +280,7 @@ async def _classify(sessions: list[CleanedSession]) -> list[ClassifiedSession]:
     sentiment_results = await sentiment_classifier.classify_batch(texts_for_sentiment)
 
     for session, sent_result in zip(sessions, sentiment_results):
-        # Intent: extraer del texto usando LLM
+        # Intent: Extraer usando LLM de Groq (tolerante a rate limits)
         intent_name, intent_category = await intent_extractor.extract_intent(
             session.user_text_concat
         )

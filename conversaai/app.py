@@ -4,9 +4,10 @@ Dashboard principal de ConversaAI — Consume datos desde la API de FastAPI.
 import streamlit as st
 import plotly.graph_objects as go
 import requests
+import os
 
 # ── CONFIG ─────────────────────────────────────────────────────────────────
-API_BASE = "http://localhost:8000/api/v1/dashboard"
+API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1/dashboard")
 
 st.set_page_config(
     page_title="ConversaAI",

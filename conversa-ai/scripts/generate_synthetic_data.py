@@ -447,4 +447,4 @@ async def generate_synthetic_data(total_sessions: int = 1500) -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(generate_synthetic_data(1500))
+    asyncio.run(generate_synthetic_data(20))

@@ -186,30 +186,48 @@ class IntentExtractor:
 
     async def extract_intent(self, user_text: str) -> tuple[str, str]:
         """Extrae el intent principal del texto concatenado del usuario.
-
+        Implementa reintentos agresivos para lidiar con el Rate Limit de Groq en ETL.
         Returns:
             Tupla (intent_name, intent_category).
         """
         if not user_text or not user_text.strip():
             return "intent_desconocido", "general"
 
-        try:
-            from langchain_core.messages import SystemMessage, HumanMessage
-            from app.core.llm_service import LLMService
+        from langchain_core.messages import SystemMessage, HumanMessage
+        from app.core.llm_service import LLMService
 
-            llm_service = LLMService()
-            messages = [
-                SystemMessage(content=self._system_prompt),
-                HumanMessage(content=self._user_prompt.format(
-                    user_text=user_text[:1000]
-                )),
-            ]
-            response = await llm_service.generate(messages)
-            return self._parse_intent(response)
+        # Usamos solo los primeros 300 caracteres del usuario para ahorrar tokens TPM
+        short_text = user_text[:300]
+        messages = [
+            SystemMessage(content=self._system_prompt),
+            HumanMessage(content=self._user_prompt.format(user_text=short_text)),
+        ]
 
-        except Exception as e:
-            logger.error(f"Error extrayendo intent vía LLM: {e}")
-            return "intent_desconocido", "general"
+        llm_service = LLMService()
+        max_retries = 8
+        base_delay = 3.0
+
+        for attempt in range(max_retries):
+            try:
+                response = await llm_service.generate(messages)
+                
+                # Si falló porque agotó intentos del LLMService o devolvió contingencia
+                if response and "dificultades técnicas" not in response:
+                    return self._parse_intent(response)
+                    
+                # Si estamos acá es porque el LLM falló internamente (probablemente rate limit)
+                raise Exception("El LLMService devolvió mensaje de error de contingencia")
+                
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    logger.error(f"Fallo definitivo extrayendo intent tras {max_retries} intentos: {e}")
+                    return "intent_desconocido", "general"
+                
+                delay = base_delay * (1.5 ** attempt)
+                logger.warning(f"Rate Limit en intent extractor (intento {attempt+1}/{max_retries}). Pausando {delay:.1f}s...")
+                await asyncio.sleep(delay)
+
+        return "intent_desconocido", "general"
 
     def _parse_intent(self, response: str) -> tuple[str, str]:
         """Parsea el JSON de respuesta del LLM."""
@@ -228,7 +246,7 @@ class IntentExtractor:
             return "intent_desconocido", "general"
 
 
-# ── Singletons ────────────────────────────────────────────────────────────
+# Singletons
 
 sentiment_classifier = SentimentClassifier()
 intent_extractor = IntentExtractor()
