@@ -382,7 +382,16 @@ if st.session_state.selected_ticket is None:
     if not tickets:
         st.info("No se encontraron tickets.")
     else:
+        # Deduplicar tickets por session_id para evitar StreamlitDuplicateElementKey
+        seen_sids = set()
+        unique_tickets = []
         for t in tickets:
+            s_id = str(t.get("session_id", ""))
+            if s_id not in seen_sids:
+                seen_sids.add(s_id)
+                unique_tickets.append(t)
+                
+        for t in unique_tickets:
             sid = str(t.get("session_id", ""))
             sid_short = sid[:4]
             date_str = t.get("date", "hace un momento")
@@ -445,14 +454,26 @@ else:
             st.markdown("""<div class="card">
             <div class="card-title">Datos del ticket</div>""", unsafe_allow_html=True)
             
+            tags = t_data.get("tags", [])
+            tags_html = " ".join([f'<span class="ticket-new-badge">{tag.get("name", "")}</span>' for tag in tags]) if tags else "Sin tags"
+            
+            pos = an.get("positive_feedback", 0)
+            neg = an.get("negative_feedback", 0)
+            stars_text = "⭐⭐⭐⭐⭐" if pos > neg else ("⭐" if neg > pos else "⭐⭐⭐")
+            
+            score = an.get("sentiment_score", 0)
+            slope = "Estable" if -0.3 < score < 0.3 else ("Descendente 📉" if score <= -0.3 else "Ascendente 📈")
+
             datos = [
                 ("Clasificación", an.get("resolution", "Desconocido").capitalize()),
+                ("Sentimiento", f"{an.get('sentiment_group', 'Neutral')} ({score})"),
+                ("Pendiente emocional", slope),
+                ("Tags", tags_html),
+                ("Idioma", an.get("language_name", "Español")),
+                ("Último nodo", "No_match"),
                 ("Mensajes totales", f"{an.get('total_messages', 0)} mensajes"),
                 ("Duración", f"{int(an.get('duration_seconds', 0)/60)} minutos"),
-                ("Canal", "Telegram"),
-                ("Idioma", an.get("language_name", "Español")),
-                ("Último nodo", "No_match x3"),
-                ("Feedback explícito", "Sin feedback")
+                ("Feedback final", stars_text)
             ]
             
             for label, val in datos:
@@ -463,23 +484,14 @@ else:
                 </div>
                 """, unsafe_allow_html=True)
             
-            st.markdown(f"""
-            <div class="insight-card">
-                <div class="insight-header"><i class="mdi mdi-auto-fix"></i> Insight de la IA</div>
-                <div class="insight-text">
-                    El usuario repitió la consulta de estado 3 veces sin resolución.<br>
-                    Patrón de loop detectado en nodo "no_match".<br>
-                    Recomendación: revisar el flujo de búsqueda por número de pedido.
-                </div>
-            </div>
-            </div>""", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         with col_right:
             date_fmt = an.get("date", "Reciente")
             st.markdown(f"""
             <div class="card">
                 <div class="chat-header">
-                    Ticket #{sid_short} — Telegram · Es
+                    Ticket #{sid_short} — Telegram · {an.get("language", "Es").upper()}
                     <span class="chat-meta">Sesión: {date_fmt} · {an.get("total_messages", 0)} mensajes</span>
                 </div>
                 <div class="chat-container">
@@ -491,33 +503,26 @@ else:
                 cls_role = "user" if role == "user" else "bot"
                 sender_name = "Usuario" if role == "user" else "Bot"
                 
+                fb = m.get("feedback")
+                fb_html = ""
+                if fb == "positive":
+                    fb_html = '<span style="color:#D0ED57; margin-left:6px;"><i class="mdi mdi-thumb-up"></i></span>'
+                elif fb == "negative":
+                    fb_html = '<span style="color:#E97358; margin-left:6px;"><i class="mdi mdi-thumb-down"></i></span>'
+                else:
+                    fb_html = '<span style="color:#62687A; margin-left:6px; font-style:italic;">(Sin feedback)</span>'
+                
                 st.markdown(f"""
                 <div class="bubble-row {cls_role}">
                     <div>
                         <div class="bubble {cls_role}">{m.get('content', '')}</div>
-                        <div class="bubble-time">{sender_name} - {m.get('time', '')}</div>
+                        <div class="bubble-time">{sender_name} · {m.get('time', '')} {fb_html}</div>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
             
             st.markdown('</div>', unsafe_allow_html=True)
 
-            if resolution == "FRUSTRATION":
-                st.markdown("""
-                <div class="alert-box">
-                    <div class="alert-icon"><i class="mdi mdi-alert-outline"></i></div>
-                    <div class="alert-text"><b>Clasificado como Frustración:</b> último sentimiento negativo + loop de "no encontré" >2 veces + timeout.<br>Ver RF#10 y RF#11 del ERS.</div>
-                </div>
-                """, unsafe_allow_html=True)
-            
             st.markdown("""
-                <div class="gradient-bar-container">
-                    <div class="gradient-label">Pendiente emocional de la sesión</div>
-                    <div class="gradient-bar"></div>
-                    <div class="gradient-labels">
-                        <span>Neutral al inicio</span>
-                        <span>Frustración al cierre</span>
-                    </div>
-                </div>
             </div>
             """, unsafe_allow_html=True)
