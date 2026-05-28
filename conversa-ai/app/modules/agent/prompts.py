@@ -34,7 +34,7 @@ EJEMPLOS:
 
 REGLA CRÍTICA: Si tenés la más mínima duda de si la pregunta es sobre Conversa Pay, clasificala como RAG para que el contexto la responda. Solo usá OUT_OF_SCOPE si es CLARAMENTE ajeno a finanzas/fintech.
 
-Mensaje del usuario: {user_message}
+{context}Mensaje del usuario: {user_message}
 
 Respondé ESTRICTAMENTE con UNA sola palabra: RAG, SQL, GREETING o OUT_OF_SCOPE."""
 )

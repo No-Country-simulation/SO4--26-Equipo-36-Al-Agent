@@ -58,9 +58,15 @@ async def supervisor_node(state: AgentState) -> Dict[str, Any]:
     - out_of_scope_node: preguntas fuera de contexto
     """
     last_message = state["messages"][-1].content
+    
+    context_str = ""
+    if len(state["messages"]) >= 2:
+        prev_message = state["messages"][-2].content
+        context_str = f"Mensaje anterior del bot: {prev_message}\n"
+        
     llm_service = LLMService(session_id=state["session_id"], user_id=state["user_id"])
 
-    prompt = router_prompt.format(user_message=last_message)
+    prompt = router_prompt.format(context=context_str, user_message=last_message)
     response_text = await llm_service.generate([HumanMessage(content=prompt)])
 
     decision = response_text.strip().upper()
