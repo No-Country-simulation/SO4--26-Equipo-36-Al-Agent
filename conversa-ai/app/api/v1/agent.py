@@ -6,6 +6,8 @@ from typing import Dict, Any, Optional
 
 from app.core.database import get_db
 from app.core.logging import get_logger
+from app.modules.evaluator.etl import run_pipeline
+import asyncio
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -98,6 +100,9 @@ async def close_session(
         real_session_id = await DBService.get_real_session_id(session_id)
         if real_session_id:
             await DBService.close_session(real_session_id)
+            # Disparar pipeline ETL en background para procesar esta sesión
+            asyncio.create_task(run_pipeline())
+            logger.info(f"Pipeline ETL disparado automáticamente desde /close-session para {real_session_id}")
     except Exception as e:
         logger.error(f"Error cerrando sesión: {e}")
         raise HTTPException(status_code=500, detail="Error al cerrar la sesión")
@@ -121,6 +126,11 @@ async def close_session_form(
         real_session_id = await DBService.get_real_session_id(session_id)
         if real_session_id:
             await DBService.close_session(real_session_id)
+            # Disparar pipeline ETL en background para procesar esta sesión
+            from app.modules.evaluator.etl import run_pipeline
+            import asyncio
+            asyncio.create_task(run_pipeline())
+            logger.info(f"Pipeline ETL disparado automáticamente desde /close-session-form para {real_session_id}")
     except Exception as e:
         logger.error(f"Error cerrando sesión: {e}")
         # Retornamos de todas formas el widget aunque falle el DB update
