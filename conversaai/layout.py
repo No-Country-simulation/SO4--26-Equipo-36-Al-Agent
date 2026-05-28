@@ -21,6 +21,7 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
 /* GLOBALS PARA EXTENDER LA UI COMPLETAMENTE A LO ANCHO Y ALTO */
 .block-container { padding: 0 !important; max-width: 100% !important; }
 [data-testid="stVerticalBlock"] { gap: 0 !important; }
+[data-testid="stPopoverBody"] [data-testid="stVerticalBlock"] { gap: 12px !important; }
 
 /* Separación entre elementos horizontales generales */
 [data-testid="stHorizontalBlock"] { gap: 20px !important; padding: 0 40px !important; margin-bottom: 20px !important; }
