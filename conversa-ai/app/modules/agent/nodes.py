@@ -92,10 +92,20 @@ async def greeting_node(state: AgentState) -> Dict[str, Any]:
     response_text = await llm_service.generate(formatted_messages)
     response_text = sanitize_markdown(response_text)
 
+    user_msg = state["messages"][-1].content.strip().lower()
+    negative_closures = ["no", "no gracias", "no, gracias", "nada mas", "nada más", "eso es todo", "ninguna otra cosa", "no necesito nada mas", "no necesito nada más"]
+
     is_finished = False
-    if "[FAREWELL]" in response_text:
+    
+    if "[FAREWELL]" in response_text or user_msg in negative_closures:
         response_text = response_text.replace("[FAREWELL]", "").strip()
-        response_text += " ¿Podrías calificar mi atención?"
+        
+        # Override response if the LLM failed to properly bid farewell on a negative closure
+        if user_msg in negative_closures and "¿Podrías calificar" not in response_text:
+            response_text = "Fue un gusto ayudarte. ¡Que tengas un buen día! ¿Podrías calificar mi atención?"
+        elif "¿Podrías calificar mi atención?" not in response_text:
+            response_text += " ¿Podrías calificar mi atención?"
+            
         is_finished = True
 
     new_message = AIMessage(content=response_text)
