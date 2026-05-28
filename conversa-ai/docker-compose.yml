@@ -87,6 +87,8 @@ services:
       - app
     networks:
       - conversa-network
+    volumes:
+      - ../conversaai:/app
 
 
 volumes:

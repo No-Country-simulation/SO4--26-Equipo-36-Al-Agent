@@ -331,16 +331,14 @@ async def generate_synthetic_data(total_sessions: int = 1500) -> None:
             lang_iso = "pt" if is_pt else "es"
             lang_id = langs.get(lang_iso, langs.get("es"))
 
-            # Timestamps distribuidos en 30 días
-            session_start = base_date + timedelta(
-                days=random.randint(0, 30),
-                hours=random.randint(6, 23),
-                minutes=random.randint(0, 59),
-            )
-
             msg_count = len(scenario["messages"])
             session_duration = msg_count * random.randint(30, 180)
-            session_end = session_start + timedelta(seconds=session_duration)
+            
+            # Timestamps
+            # Simular sesiones en las últimas 24 horas
+            session_start = datetime.now(timezone.utc) - timedelta(minutes=random.randint(1, 60 * 24))
+            has_end = "abandono" not in str(scenario.get("intent", ""))
+            session_end = session_start + timedelta(minutes=random.randint(1, 15)) if has_end else None
 
             # Retries para escenarios frustrados
             retry_count = random.randint(1, 3) if "frustrado" in str(scenario.get("tag", "")) else 0

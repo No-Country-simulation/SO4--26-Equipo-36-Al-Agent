@@ -250,18 +250,7 @@ if intents:
     for idx, intent in enumerate(intents):
         pct = int(intent["count"] / max_count * 100)
         color = intent_colors[idx % len(intent_colors)]
-        intent_rows += f"""
-        <div class="intent-row">
-          <span class="intent-label">{intent["intent"]}</span>
-          <div class="intent-bar-bg"><div class="intent-bar-fill" style="width:{pct}%;background:{color};"></div></div>
-          <span class="intent-pct">{intent["count"]}</span>
-        </div>"""
+        intent_rows += f'<div class="intent-row"><span class="intent-label">{intent["intent"]}</span><div class="intent-bar-bg"><div class="intent-bar-fill" style="width:{pct}%;background:{color};"></div></div><span class="intent-pct">{intent["count"]}</span></div>'
 
-    st.markdown(f"""
-    <div class="px">
-      <div class="section-card mb24">
-        <div class="section-title">Top intenciones no resueltas</div>
-        {intent_rows}
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+    html_block = f'<div class="px"><div class="section-card mb24"><div class="section-title">Top intenciones no resueltas</div>{intent_rows}</div></div>'
+    st.markdown(html_block, unsafe_allow_html=True)

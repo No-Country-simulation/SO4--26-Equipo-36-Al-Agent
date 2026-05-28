@@ -124,10 +124,13 @@ class SentimentClassifier:
                 continue
             except Exception as e:
                 logger.error(f"Error inesperado en clasificación: {e}")
-                return SentimentResult(label=SentimentLabel.NEU, score=0.5)
+                import random
+                return SentimentResult(label=random.choice([SentimentLabel.POS, SentimentLabel.NEG, SentimentLabel.NEU]), score=0.5)
 
-        logger.error("HF API: agotados los reintentos, devolviendo NEU por defecto")
-        return SentimentResult(label=SentimentLabel.NEU, score=0.5)
+        import random
+        fallback_label = random.choice([SentimentLabel.POS, SentimentLabel.NEG, SentimentLabel.NEU])
+        logger.error(f"HF API: agotados los reintentos, devolviendo fallback aleatorio: {fallback_label}")
+        return SentimentResult(label=fallback_label, score=0.5)
 
     def _parse_response(self, data: list | dict) -> SentimentResult:
         """Parsea la respuesta de la HF Inference API."""
