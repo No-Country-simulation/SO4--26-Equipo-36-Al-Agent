@@ -5,6 +5,7 @@ Dark Mode premium, sin tags HTML abiertos que rompan el layout nativo de Streaml
 import streamlit as st
 import requests
 import os
+from streamlit_autorefresh import st_autorefresh
 
 API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1/dashboard")
 
@@ -12,9 +13,19 @@ st.set_page_config(page_title="ConversaAI — Tickets", page_icon="💬", layout
 
 if "selected_ticket" not in st.session_state:
     st.session_state.selected_ticket = None
+if "last_ticket_ids" not in st.session_state:
+    st.session_state.last_ticket_ids = set()
+if "new_ticket_ids" not in st.session_state:
+    st.session_state.new_ticket_ids = set()
+if "has_notifications" not in st.session_state:
+    st.session_state.has_notifications = False
 
 def set_ticket(sid):
     st.session_state.selected_ticket = sid
+    if sid in st.session_state.new_ticket_ids:
+        st.session_state.new_ticket_ids.remove(sid)
+    if not st.session_state.new_ticket_ids:
+        st.session_state.has_notifications = False
 
 def clear_ticket():
     st.session_state.selected_ticket = None
@@ -266,7 +277,7 @@ def fetch_ticket_detail(session_id: str) -> dict:
 # ── MAIN VIEW CONTROL ───────────────────────────────────────────────────────
 if st.session_state.selected_ticket is None:
     # ── VISTA 1: LISTADO ──
-    render_topbar(subtitle="Listado de tickets")
+    # No render_topbar again here, it is rendered above.
 
     col_search, col_filter, _ = st.columns([4, 2.5, 5.5])
 
@@ -302,6 +313,8 @@ if st.session_state.selected_ticket is None:
                 tag_opts = ["VIP", "Urgente", "Devolución", "Soporte", "Queja"]
                 tags_filter = st.multiselect("Tags", tag_opts)
 
+    st_autorefresh(interval=10000, key="tickets_refresh")
+
     params = {"page": 1, "page_size": 100}
     
     # ── LLAMADA API ──
@@ -312,6 +325,22 @@ if st.session_state.selected_ticket is None:
         st.stop()
 
     tickets = data.get("tickets", [])
+    
+    # Ordenar por fecha descendente o session_id
+    tickets = sorted(tickets, key=lambda t: t.get("created_at", t.get("date", t.get("session_id", ""))), reverse=True)
+
+    # ── DETECCIÓN DE TICKETS NUEVOS ──
+    current_ids = set(t.get("session_id") for t in tickets)
+    if st.session_state.last_ticket_ids:
+        new_ids = current_ids - st.session_state.last_ticket_ids
+        if new_ids:
+            st.session_state.new_ticket_ids.update(new_ids)
+            st.toast("¡Nuevos tickets recibidos!", icon="🔔")
+            st.session_state.has_notifications = True
+    
+    st.session_state.last_ticket_ids = current_ids
+
+    render_topbar(subtitle="Listado de tickets", has_notifications=st.session_state.has_notifications)
     
     # ── FILTRADO LOCAL EN TIEMPO REAL ──
     if busqueda:
@@ -360,15 +389,18 @@ if st.session_state.selected_ticket is None:
             intent = t.get("intent", "Sin clasificar").replace("_", " ").capitalize()
             res = t.get("resolution", "")
             icon = "mdi-message-text-outline"
+            is_new = sid in st.session_state.new_ticket_ids
+            badge_html = '<span class="ticket-new-badge">NUEVO</span>' if is_new else ""
+            card_class = "ticket-card is-new" if is_new else "ticket-card"
             
             c_card, c_btn = st.columns([11, 1])
             with c_card:
                 st.markdown(f"""
-                <div class="ticket-row-container">
+                <div class="{card_class} ticket-row-container">
                     <div class="ticket-main">
                         <div class="ticket-icon"><i class="mdi {icon}"></i></div>
                         <div class="ticket-info">
-                            <div class="ticket-id">#{sid_short} <span class="ticket-time">• {date_str}</span></div>
+                            <div class="ticket-id">#{sid_short} {badge_html} <span class="ticket-time">• {date_str}</span></div>
                             <div class="ticket-intent">{intent}</div>
                         </div>
                     </div>
@@ -382,7 +414,7 @@ else:
     sid = st.session_state.selected_ticket
     sid_short = sid[:4]
     
-    render_topbar(subtitle=f"Chat de ticket #{sid_short}")
+    render_topbar(subtitle=f"Chat de ticket #{sid_short}", has_notifications=st.session_state.has_notifications)
 
     t_data = fetch_ticket_detail(sid)
     

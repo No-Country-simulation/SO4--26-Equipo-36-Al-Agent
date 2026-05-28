@@ -61,11 +61,17 @@ div[data-testid="column"] { padding: 0 !important; }
 .topbar-subtitle { font-size: 14px; color: #8A8F9E; font-weight: 500; }
 
 .topbar-right { display: flex; align-items: center; gap: 16px; }
-.icon-btn { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #1A1D24; color: #F2F4F7; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
+.icon-btn { position: relative; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #1A1D24; color: #F2F4F7; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
 .icon-btn:hover { background: #282C38; }
+.icon-btn.has-notification::after { content: ''; position: absolute; top: 10px; right: 12px; width: 8px; height: 8px; background: #E97358; border-radius: 50%; box-shadow: 0 0 8px rgba(233,115,88,0.8); }
+
 .profile-pill { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 600; color: #F2F4F7; background: #1A1D24; padding: 6px 20px 6px 6px; border-radius: 99px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); transition: 0.2s; }
 .profile-pill:hover { background: #282C38; }
 .profile-avatar { width: 36px; height: 36px; border-radius: 50%; background: #D0ED57; display: flex; align-items: center; justify-content: center; color: #16181F; font-size: 14px; font-weight: 700; }
+
+/* ── TICKET NOTIFICATION CLASSES ── */
+.ticket-new-badge { font-size: 10px; background: rgba(208,237,87,0.15); color: #D0ED57; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 8px; vertical-align: middle; }
+.ticket-card.is-new { border-color: rgba(208,237,87,0.4) !important; box-shadow: 0 0 16px rgba(208,237,87,0.1) !important; }
 
 /* ── UTILS ── */
 .px { padding: 0 40px; margin-bottom: 32px; }
@@ -89,7 +95,8 @@ def render_sidebar(active_page="dashboard"):
         </div>
         """, unsafe_allow_html=True)
 
-def render_topbar(subtitle="Panel de análisis"):
+def render_topbar(subtitle="Panel de análisis", has_notifications=False):
+    bell_class = "has-notification" if has_notifications else ""
     st.markdown(f"""
     <div class="topbar">
       <div class="topbar-left">
@@ -98,7 +105,7 @@ def render_topbar(subtitle="Panel de análisis"):
         <span class="topbar-subtitle">{subtitle}</span>
       </div>
       <div class="topbar-right">
-        <div class="icon-btn"><i class="mdi mdi-bell-outline"></i></div>
+        <div class="icon-btn {bell_class}"><i class="mdi mdi-bell-outline"></i></div>
         <div class="profile-pill">
           <div class="profile-avatar">P</div> Pablo Diaz
         </div>

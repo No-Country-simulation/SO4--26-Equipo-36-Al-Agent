@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 import requests
 import os
 from datetime import datetime
+from streamlit_autorefresh import st_autorefresh
 
 # ── CONFIG ─────────────────────────────────────────────────────────────────
 API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1/dashboard")
@@ -97,12 +98,27 @@ def fetch_overview() -> dict:
 render_sidebar(active_page="dashboard")
 
 
+# ── POLLING & ESTADO DE NOTIFICACIONES ─────────────────────────────────────
+st_autorefresh(interval=10000, key="dash_refresh")
+
+if "dash_last_count" not in st.session_state:
+    st.session_state.dash_last_count = -1
+if "has_notifications" not in st.session_state:
+    st.session_state.has_notifications = False
+
 # ── FETCH DATA ─────────────────────────────────────────────────────────────
 data = fetch_overview()
 
+if data:
+    current_count = data.get("kpis", {}).get("total_sessions", 0)
+    if st.session_state.dash_last_count != -1 and current_count > st.session_state.dash_last_count:
+        st.toast("¡Nuevo ticket clasificado!", icon="🔔")
+        st.session_state.has_notifications = True
+    st.session_state.dash_last_count = current_count
+
 # ── TOPBAR ─────────────────────────────────────────────────────────────────
 today = datetime.now().strftime("%d/%m/%Y")
-render_topbar(subtitle="Panel de análisis")
+render_topbar(subtitle="Panel de análisis", has_notifications=st.session_state.has_notifications)
 
 if not data:
     st.markdown('<div class="px"><div class="no-data">⚠ No se pudo conectar con la API.</div></div>', unsafe_allow_html=True)
