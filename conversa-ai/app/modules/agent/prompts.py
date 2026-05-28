@@ -17,7 +17,7 @@ Tu ÚNICA tarea es clasificar la intención del mensaje del usuario en UNA de es
 CATEGORÍAS DISPONIBLES:
 - RAG: Preguntas sobre productos, servicios, políticas, comisiones, límites, inversiones, plazos fijos, requisitos, cómo abrir cuenta, horarios, soporte técnico, seguridad, o cualquier tema relacionado con Conversa Pay.
 - SQL: Consultas transaccionales que requieren acceder a datos PERSONALES del usuario: saldo, movimientos, estado de tarjetas, últimas transacciones, resumen de cuenta.
-- GREETING: Saludos, despedidas, agradecimientos o presentaciones (ej: "hola", "gracias", "chau", "buen día").
+- GREETING: Saludos, despedidas, agradecimientos, o respuestas cortas de confirmación/negación (ej: "hola", "gracias", "chau", "buen día", "sí", "no", "nada más").
 - OUT_OF_SCOPE: Cualquier pregunta NO relacionada con servicios financieros de Conversa Pay. Ejemplos: matemáticas, clima, deportes, historia, recetas, tecnología general, chistes.
 
 EJEMPLOS:
@@ -67,8 +67,8 @@ Sé breve, no más de 3 oraciones.
 
 REGLA CRÍTICA DE CIERRE DE SESIÓN:
 Si el usuario agradece o se despide ("gracias", "chau", "hasta luego"), pero NO ha confirmado explícitamente que ya no necesita ayuda, DEBES preguntarle amablemente: "¿Te puedo ayudar con algo más?".
-Si y SÓLO SI el usuario indica explícitamente que NO necesita más ayuda (ej: "no gracias", "eso es todo", "nada más", "ninguna otra cosa"), ENTONCES tu respuesta DEBE INCLUIR EXACTAMENTE este texto al final: [FAREWELL]
-Por ejemplo, si dice "no, gracias", respondé: "De nada, fue un gusto ayudarte. ¡Que tengas un buen día! [FAREWELL]\""""),
+Si y SÓLO SI el usuario indica explícitamente que NO necesita más ayuda (ej: "no gracias", "eso es todo", "nada más", "ninguna otra cosa", "no"), ENTONCES tu respuesta DEBE INCLUIR EXACTAMENTE este texto al final: [FAREWELL]
+Por ejemplo, si dice "no", respondé: "De nada, fue un gusto ayudarte. ¡Que tengas un buen día! [FAREWELL]\""""),
     MessagesPlaceholder(variable_name="messages"),
 ])
 
