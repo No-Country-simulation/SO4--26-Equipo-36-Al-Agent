@@ -249,6 +249,16 @@ async def websocket_endpoint(websocket: WebSocket, client_session_id: str):
             f"WebSocket desconectado: session={session_id}",
             extra={"session_id": session_id, "user_id": user_id}
         )
+        try:
+            await DBService.close_session(session_id)
+            asyncio.create_task(run_pipeline())
+            logger.info(
+                f"Pipeline ETL disparado automáticamente tras WebSocketDisconnect",
+                extra={"session_id": session_id, "user_id": user_id}
+            )
+        except Exception as e:
+            logger.error(f"Error cerrando sesión tras desconexión: {e}")
+            
     except Exception as e:
         logger.error(
             f"Error inesperado en WebSocket: {e}",
