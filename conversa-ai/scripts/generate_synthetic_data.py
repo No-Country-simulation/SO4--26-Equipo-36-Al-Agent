@@ -468,10 +468,10 @@ async def generate_synthetic_data(total_sessions: int = 120) -> None:
                     fact_id, session_id, dim_time_id, dim_language_id,
                     dim_intent_id, dim_sentiment_id, resolution_id,
                     session_duration_seconds, total_messages, sentiment_score,
-                    positive_feedback_count, negative_feedback_count, is_abandoned, is_authenticated
+                    positive_feedback_count, negative_feedback_count, is_abandoned, is_authenticated, is_read
                 ) VALUES (
                     :fid, :sid, :tid, :lid, :iid, :seid, :rid,
-                    :dur, :msgs, :score, :pos, :neg, :aband, :auth
+                    :dur, :msgs, :score, :pos, :neg, :aband, :auth, TRUE
                 )
             """), {
                 "fid": fact_id, "sid": session_id, "tid": time_id,
