@@ -279,7 +279,8 @@ CREATE TABLE analytics_warehouse.fact_sessions_evaluation (
     positive_feedback_count INTEGER DEFAULT 0,
     negative_feedback_count INTEGER DEFAULT 0,
     is_abandoned BOOLEAN DEFAULT FALSE,
-    is_authenticated BOOLEAN DEFAULT FALSE
+    is_authenticated BOOLEAN DEFAULT FALSE,
+    is_read BOOLEAN DEFAULT FALSE
 );
 
 -- Tabla Puente OLAP: Relación de muchos a muchos para Filtros Rápidos de Etiquetas

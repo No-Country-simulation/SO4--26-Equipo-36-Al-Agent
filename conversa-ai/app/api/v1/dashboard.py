@@ -84,6 +84,13 @@ async def dashboard_overview(
         WHERE session_duration_seconds > 0 {auth_cond_and}
     """))
 
+    # Tickets sin leer
+    unread = await db.execute(text(f"""
+        SELECT COUNT(*) FROM analytics_warehouse.fact_sessions_evaluation
+        WHERE is_read = FALSE {auth_cond_and}
+    """))
+    unread_count = unread.scalar() or 0
+
     # Distribución de sentimiento
     sentiment_dist = await db.execute(text(f"""
         SELECT ds.sentiment_group, COUNT(*) AS cnt
@@ -137,6 +144,7 @@ async def dashboard_overview(
             "success_rate": success_rate,
             "frustration_rate": frustration_rate,
             "avg_duration_seconds": round(float(avg_duration.scalar() or 0), 1),
+            "unread_count": unread_count,
         },
         "sentiment_distribution": sentiments,
         "conversations_by_hour": hours_data,
@@ -196,6 +204,7 @@ async def list_tickets(
         SELECT f.fact_id, f.session_id, f.total_messages, f.sentiment_score,
                f.session_duration_seconds, f.is_abandoned,
                f.positive_feedback_count, f.negative_feedback_count,
+               f.is_read,
                ds.label AS sentiment_label, ds.sentiment_group,
                di.intent_name, di.category AS intent_category,
                cr.resolution_name,
@@ -241,6 +250,7 @@ async def list_tickets(
             "hour": r.hour,
             "duration_seconds": r.session_duration_seconds,
             "is_abandoned": r.is_abandoned,
+            "is_read": r.is_read,
             "tags": ticket_tags,
             "positive_feedback": r.positive_feedback_count,
             "negative_feedback": r.negative_feedback_count,
@@ -297,6 +307,15 @@ async def ticket_detail(
 
     if not fact:
         return {"error": "Ticket no encontrado en el warehouse"}
+
+    # Mark as read
+    if not fact.is_read:
+        await db.execute(text("""
+            UPDATE analytics_warehouse.fact_sessions_evaluation
+            SET is_read = TRUE
+            WHERE session_id = :sid
+        """), {"sid": session_id})
+        await db.commit()
 
     # Tags
     tags_q = await db.execute(text("""

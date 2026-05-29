@@ -42,10 +42,6 @@ if "dash_last_count" not in st.session_state or not isinstance(st.session_state.
 if "has_notifications" not in st.session_state:
     st.session_state.has_notifications = False
 
-# TOPBAR (Debe renderizarse ANTES de st_autorefresh para no heredar espacios fantasmas) 
-today = datetime.now().strftime("%d/%m/%Y")
-render_topbar(subtitle="Panel de análisis", has_notifications=st.session_state.has_notifications)
-
 # FILTROS GLOBALES 
 st.markdown("""
 <style>
@@ -66,17 +62,31 @@ st_autorefresh(interval=10000, key="dash_refresh")
 # FETCH DATA 
 data = fetch_overview(user_filter=current_user_filter)
 
+unread_count = data.get("kpis", {}).get("unread_count", 0) if data else 0
+
+# TOPBAR (Debe renderizarse ANTES de st_autorefresh para no heredar espacios fantasmas, pero necesitamos la data)
+today = datetime.now().strftime("%d/%m/%Y")
+render_topbar(subtitle="Panel de análisis", has_notifications=(unread_count > 0))
+
 if data:
     current_count = data.get("kpis", {}).get("total_sessions", 0)
     last_count = st.session_state.dash_last_count.get(current_user_filter, -1)
     if last_count != -1 and current_count > last_count:
         st.toast("¡Nuevo ticket clasificado!", icon="🔔")
-        st.session_state.has_notifications = True
     st.session_state.dash_last_count[current_user_filter] = current_count
 
 if not data:
     st.markdown('<div class="px"><div class="no-data">⚠ No se pudo conectar con la API.</div></div>', unsafe_allow_html=True)
     st.stop()
+
+# NOTIFICACION INTERACTIVA
+if unread_count > 0:
+    st.markdown('<div class="px">', unsafe_allow_html=True)
+    col1, col2 = st.columns([8, 2])
+    col1.info(f"🔔 ¡Tienes {unread_count} ticket(s) nuevo(s) sin leer!")
+    if col2.button("Ver tickets nuevos", use_container_width=True):
+        st.switch_page("pages/2_tickets.py")
+    st.markdown('</div>', unsafe_allow_html=True)
 
 kpis = data["kpis"]
 

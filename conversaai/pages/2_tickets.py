@@ -22,10 +22,6 @@ if "has_notifications" not in st.session_state:
 
 def set_ticket(sid):
     st.session_state.selected_ticket = sid
-    if sid in st.session_state.new_ticket_ids:
-        st.session_state.new_ticket_ids.remove(sid)
-    if not st.session_state.new_ticket_ids:
-        st.session_state.has_notifications = False
 
 def clear_ticket():
     st.session_state.selected_ticket = None
@@ -123,16 +119,12 @@ if st.session_state.selected_ticket is None:
     # Ordenar por fecha descendente o session_id
     tickets = sorted(tickets, key=lambda t: t.get("created_at", t.get("date", t.get("session_id", ""))), reverse=True)
 
-    # ── DETECCIÓN DE TICKETS NUEVOS ──
-    current_ids = set(t.get("session_id") for t in tickets)
-    if st.session_state.last_ticket_ids:
-        new_ids = current_ids - st.session_state.last_ticket_ids
-        if new_ids:
-            st.session_state.new_ticket_ids.update(new_ids)
-            st.toast("¡Nuevos tickets recibidos!", icon="🔔")
-            st.session_state.has_notifications = True
-    
-    st.session_state.last_ticket_ids = current_ids
+    # ── DETECCIÓN DE TICKETS NUEVOS (DB) ──
+    unread_tickets = [t for t in tickets if not t.get("is_read", True)]
+    if unread_tickets:
+        st.session_state.has_notifications = True
+    else:
+        st.session_state.has_notifications = False
 
     # ── FILTRADO LOCAL EN TIEMPO REAL ──
     if busqueda:
@@ -190,8 +182,8 @@ if st.session_state.selected_ticket is None:
             intent = t.get("intent", "Sin clasificar").replace("_", " ").capitalize()
             res = t.get("resolution", "")
             icon = "mdi-message-text-outline"
-            is_new = sid in st.session_state.new_ticket_ids
-            badge_html = '<span class="ticket-new-badge">NUEVO</span>' if is_new else ""
+            is_new = not t.get("is_read", True)
+            badge_html = '<span class="ticket-new-badge">NO LEÍDO</span>' if is_new else ""
             card_class = "ticket-card is-new" if is_new else "ticket-card"
             
             c_card, c_btn = st.columns([11, 1])
