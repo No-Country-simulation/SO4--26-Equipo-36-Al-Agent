@@ -278,7 +278,8 @@ CREATE TABLE analytics_warehouse.fact_sessions_evaluation (
     sentiment_score NUMERIC(3,2),
     positive_feedback_count INTEGER DEFAULT 0,
     negative_feedback_count INTEGER DEFAULT 0,
-    is_abandoned BOOLEAN DEFAULT FALSE
+    is_abandoned BOOLEAN DEFAULT FALSE,
+    is_authenticated BOOLEAN DEFAULT FALSE
 );
 
 -- Tabla Puente OLAP: Relación de muchos a muchos para Filtros Rápidos de Etiquetas

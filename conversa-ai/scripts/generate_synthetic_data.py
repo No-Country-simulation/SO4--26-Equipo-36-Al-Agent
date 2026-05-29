@@ -267,10 +267,10 @@ HOUR_WEIGHTS = [1]*6 + [3,4,5,6,8,10,10,9,8,7,6,5,4,3,2,2,1,1]  # 00h-23h
 async def generate_synthetic_data(total_sessions: int = 120) -> None:
     """Genera sesiones sintéticas en agent_core Y analytics_warehouse."""
     async with async_session_maker() as session:
-        # Obtener usuarios existentes
-        result = await session.execute(text("SELECT user_id FROM agent_core.users"))
-        user_ids = [str(r.user_id) for r in result.fetchall()]
-        if not user_ids:
+        # Obtener usuarios existentes y si son anónimos o no
+        result = await session.execute(text("SELECT user_id, email FROM agent_core.users"))
+        users_data = [{"user_id": str(r.user_id), "is_authenticated": bool(r.email)} for r in result.fetchall()]
+        if not users_data:
             logger.error("No hay usuarios en agent_core.users. Ejecutá seed_db.py primero.")
             return
 
@@ -320,7 +320,10 @@ async def generate_synthetic_data(total_sessions: int = 120) -> None:
                 pool = pools_es.get(scenario_type, list(SCENARIOS_ES.values()))
             scenario = random.choice(pool)
 
-            user_id = random.choice(user_ids)
+            selected_user = random.choice(users_data)
+            user_id = selected_user["user_id"]
+            is_authenticated = selected_user["is_authenticated"]
+            
             lang_iso = "pt" if is_pt else "es"
             lang_id = langs.get(lang_iso, langs.get("es"))
             msg_count = len(scenario["messages"])
@@ -465,10 +468,10 @@ async def generate_synthetic_data(total_sessions: int = 120) -> None:
                     fact_id, session_id, dim_time_id, dim_language_id,
                     dim_intent_id, dim_sentiment_id, resolution_id,
                     session_duration_seconds, total_messages, sentiment_score,
-                    positive_feedback_count, negative_feedback_count, is_abandoned
+                    positive_feedback_count, negative_feedback_count, is_abandoned, is_authenticated
                 ) VALUES (
                     :fid, :sid, :tid, :lid, :iid, :seid, :rid,
-                    :dur, :msgs, :score, :pos, :neg, :aband
+                    :dur, :msgs, :score, :pos, :neg, :aband, :auth
                 )
             """), {
                 "fid": fact_id, "sid": session_id, "tid": time_id,
@@ -476,7 +479,7 @@ async def generate_synthetic_data(total_sessions: int = 120) -> None:
                 "seid": sentiment_id, "rid": resolution_id,
                 "dur": session_duration, "msgs": msg_count,
                 "score": sentiment_score, "pos": pos_fb, "neg": neg_fb,
-                "aband": is_abandoned,
+                "aband": is_abandoned, "auth": is_authenticated,
             })
 
             # fact_tag_assignments

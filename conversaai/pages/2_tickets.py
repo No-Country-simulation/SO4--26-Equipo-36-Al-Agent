@@ -67,7 +67,11 @@ if st.session_state.selected_ticket is None:
     with col_filter:
         try:
             with st.popover("Filtros", use_container_width=True):
-                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:4px; color:#8A8F9E;'>Resolución</div>", unsafe_allow_html=True)
+                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:4px; color:#8A8F9E;'>Tipo de Usuario</div>", unsafe_allow_html=True)
+                user_type_opts = ["Todos", "Solo Clientes", "Solo Anónimos"]
+                user_filter = st.radio("Tipo de Usuario", user_type_opts, label_visibility="collapsed")
+
+                st.markdown("<div style='font-weight:500; font-size:14px; margin-top:12px; color:#8A8F9E;'>Resolución</div>", unsafe_allow_html=True)
                 res_opts = ["Todas", "SUCCESS", "NEUTRAL", "FRUSTRATION", "ABANDONED"]
                 res_filter = st.radio("Resolución", res_opts, label_visibility="collapsed")
                 
@@ -85,6 +89,8 @@ if st.session_state.selected_ticket is None:
                 
         except AttributeError:
             with st.expander("Filtros"):
+                user_type_opts = ["Todos", "Solo Clientes", "Solo Anónimos"]
+                user_filter = st.radio("Tipo de Usuario", user_type_opts)
                 res_opts = ["Todas", "SUCCESS", "NEUTRAL", "FRUSTRATION", "ABANDONED"]
                 res_filter = st.radio("Resolución", res_opts)
                 lang_opts = ["Todos", "es", "pt", "en"]
@@ -96,7 +102,14 @@ if st.session_state.selected_ticket is None:
 
     st_autorefresh(interval=10000, key="tickets_refresh")
 
-    params = {"page": 1, "page_size": 100}
+    # Mapeo de filtro de usuario
+    user_filter_val = "all"
+    if "user_filter" in locals() and user_filter == "Solo Clientes":
+        user_filter_val = "auth"
+    elif "user_filter" in locals() and user_filter == "Solo Anónimos":
+        user_filter_val = "anon"
+
+    params = {"page": 1, "page_size": 100, "user_filter": user_filter_val}
     
     # ── LLAMADA API ──
     data = fetch_tickets(params)

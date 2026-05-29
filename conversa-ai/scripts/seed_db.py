@@ -34,6 +34,10 @@ FAKE_USERS = [
     {"full_name": "Luciana Torres Vega", "email": "luciana.torres@test.com", "phone": "+5491199001122", "external_id": "luciana_torres"},
     {"full_name": "Sebastián Morales", "email": "sebastian.morales@test.com", "phone": "+5491188990011", "external_id": "sebastian_morales"},
     {"full_name": "Camila Ruiz Díaz", "email": "camila.ruiz@test.com", "phone": "+5491177889900", "external_id": "camila_ruiz"},
+    # Usuarios anónimos
+    {"full_name": None, "email": None, "phone": None, "external_id": "anon_" + str(uuid.uuid4())[:8]},
+    {"full_name": None, "email": None, "phone": None, "external_id": "anon_" + str(uuid.uuid4())[:8]},
+    {"full_name": None, "email": None, "phone": None, "external_id": "anon_" + str(uuid.uuid4())[:8]},
 ]
 
 

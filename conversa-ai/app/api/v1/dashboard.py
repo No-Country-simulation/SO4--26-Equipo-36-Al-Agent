@@ -25,73 +25,96 @@ router = APIRouter(tags=["Dashboard"])
 
 
 @router.get("/overview")
-async def dashboard_overview(db: AsyncSession = Depends(get_db)) -> dict:
+async def dashboard_overview(
+    db: AsyncSession = Depends(get_db),
+    user_filter: str = Query("all", description="all, auth, anon")
+) -> dict:
     """KPIs principales, distribución de sentimiento y datos para charts."""
 
+    auth_cond = ""
+    if user_filter == "auth":
+        auth_cond = "WHERE is_authenticated = TRUE"
+    elif user_filter == "anon":
+        auth_cond = "WHERE is_authenticated = FALSE"
+
+    auth_cond_and = ""
+    if user_filter == "auth":
+        auth_cond_and = "AND is_authenticated = TRUE"
+    elif user_filter == "anon":
+        auth_cond_and = "AND is_authenticated = FALSE"
+        
+    auth_cond_and_f = ""
+    if user_filter == "auth":
+        auth_cond_and_f = "AND f.is_authenticated = TRUE"
+    elif user_filter == "anon":
+        auth_cond_and_f = "AND f.is_authenticated = FALSE"
+
     # Total de sesiones evaluadas
-    total = await db.execute(text("""
-        SELECT COUNT(*) FROM analytics_warehouse.fact_sessions_evaluation
+    total = await db.execute(text(f"""
+        SELECT COUNT(*) FROM analytics_warehouse.fact_sessions_evaluation {auth_cond}
     """))
     total_sessions = total.scalar() or 0
 
     # KPIs por resolución
-    resolution_counts = await db.execute(text("""
+    resolution_counts = await db.execute(text(f"""
         SELECT cr.resolution_name, COUNT(*) AS cnt
         FROM analytics_warehouse.fact_sessions_evaluation f
         JOIN analytics_warehouse.cat_resolution_types cr ON f.resolution_id = cr.resolution_id
+        WHERE 1=1 {auth_cond_and_f}
         GROUP BY cr.resolution_name
     """))
     resolutions = {r.resolution_name: r.cnt for r in resolution_counts.fetchall()}
 
     # Total mensajes
-    total_msgs = await db.execute(text("""
+    total_msgs = await db.execute(text(f"""
         SELECT COALESCE(SUM(total_messages), 0)
-        FROM analytics_warehouse.fact_sessions_evaluation
+        FROM analytics_warehouse.fact_sessions_evaluation {auth_cond}
     """))
 
     # Tasa de abandono
-    abandoned = await db.execute(text("""
+    abandoned = await db.execute(text(f"""
         SELECT COUNT(*) FROM analytics_warehouse.fact_sessions_evaluation
-        WHERE is_abandoned = TRUE
+        WHERE is_abandoned = TRUE {auth_cond_and}
     """))
 
     # Tiempo promedio de respuesta (duración promedio / mensajes)
-    avg_duration = await db.execute(text("""
+    avg_duration = await db.execute(text(f"""
         SELECT COALESCE(AVG(session_duration_seconds), 0)
         FROM analytics_warehouse.fact_sessions_evaluation
-        WHERE session_duration_seconds > 0
+        WHERE session_duration_seconds > 0 {auth_cond_and}
     """))
 
     # Distribución de sentimiento
-    sentiment_dist = await db.execute(text("""
+    sentiment_dist = await db.execute(text(f"""
         SELECT ds.sentiment_group, COUNT(*) AS cnt
         FROM analytics_warehouse.fact_sessions_evaluation f
         JOIN analytics_warehouse.dim_sentiment ds ON f.dim_sentiment_id = ds.sentiment_id
+        WHERE 1=1 {auth_cond_and_f}
         GROUP BY ds.sentiment_group
     """))
     sentiments = {r.sentiment_group: r.cnt for r in sentiment_dist.fetchall()}
 
     # Conversaciones por hora (hoy o último día con datos)
-    by_hour = await db.execute(text("""
+    by_hour = await db.execute(text(f"""
         SELECT dt.hour, COUNT(*) AS cnt
         FROM analytics_warehouse.fact_sessions_evaluation f
         JOIN analytics_warehouse.dim_time dt ON f.dim_time_id = dt.time_id
         WHERE dt.full_date = (
             SELECT MAX(full_date) FROM analytics_warehouse.dim_time dt2
             JOIN analytics_warehouse.fact_sessions_evaluation f2 ON dt2.time_id = f2.dim_time_id
-        )
+        ) {auth_cond_and_f}
         GROUP BY dt.hour
         ORDER BY dt.hour
     """))
     hours_data = {r.hour: r.cnt for r in by_hour.fetchall()}
 
     # Top intenciones no resueltas
-    top_intents = await db.execute(text("""
+    top_intents = await db.execute(text(f"""
         SELECT di.intent_name, di.category, COUNT(*) AS cnt
         FROM analytics_warehouse.fact_sessions_evaluation f
         JOIN analytics_warehouse.dim_intent di ON f.dim_intent_id = di.intent_id
         JOIN analytics_warehouse.cat_resolution_types cr ON f.resolution_id = cr.resolution_id
-        WHERE cr.resolution_name != 'SUCCESS'
+        WHERE cr.resolution_name != 'SUCCESS' {auth_cond_and_f}
         GROUP BY di.intent_name, di.category
         ORDER BY cnt DESC
         LIMIT 5
@@ -131,6 +154,7 @@ async def list_tickets(
     language: Optional[str] = Query(None),
     tag: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    user_filter: str = Query("all", description="all, auth, anon"),
 ) -> dict:
     """Lista tickets evaluados con filtros desde el warehouse.
 
@@ -138,6 +162,11 @@ async def list_tickets(
     """
     conditions: list[str] = []
     params: dict = {"limit": page_size, "offset": (page - 1) * page_size}
+
+    if user_filter == "auth":
+        conditions.append("f.is_authenticated = TRUE")
+    elif user_filter == "anon":
+        conditions.append("f.is_authenticated = FALSE")
 
     if sentiment:
         conditions.append("ds.sentiment_group = :sentiment")

@@ -139,9 +139,11 @@ async def _extract(db: AsyncSession) -> list[ExtractedSession]:
     # Query sesiones finalizadas
     sessions_result = await db.execute(text("""
         SELECT s.session_id, s.user_id, s.start_time, s.end_time, s.retry_count,
-               COALESCE(cl.iso_code, 'es') AS language_iso
+               COALESCE(cl.iso_code, 'es') AS language_iso,
+               CASE WHEN u.email IS NOT NULL AND u.email != '' THEN true ELSE false END AS is_authenticated
         FROM agent_core.sessions s
         LEFT JOIN agent_core.cat_languages cl ON s.language_id = cl.language_id
+        LEFT JOIN agent_core.users u ON s.user_id = u.user_id
         WHERE s.status_id = 2
         ORDER BY s.start_time
         LIMIT :batch_size
@@ -224,6 +226,7 @@ async def _extract(db: AsyncSession) -> list[ExtractedSession]:
             positive_feedback_count=fb.pos if fb else 0,
             negative_feedback_count=fb.neg if fb else 0,
             star_rating=star,
+            is_authenticated=row.is_authenticated,
         ))
 
     return extracted
@@ -420,10 +423,10 @@ async def _load(db: AsyncSession, sessions: list[ResolvedSession]) -> int:
                     fact_id, session_id, dim_time_id, dim_language_id,
                     dim_intent_id, dim_sentiment_id, resolution_id,
                     session_duration_seconds, total_messages, sentiment_score,
-                    positive_feedback_count, negative_feedback_count, is_abandoned
+                    positive_feedback_count, negative_feedback_count, is_abandoned, is_authenticated
                 ) VALUES (
                     :fid, :sid, :tid, :lid, :iid, :seid, :rid,
-                    :dur, :msgs, :score, :pos, :neg, :aband
+                    :dur, :msgs, :score, :pos, :neg, :aband, :auth
                 )
                 ON CONFLICT DO NOTHING
             """), {
@@ -440,6 +443,7 @@ async def _load(db: AsyncSession, sessions: list[ResolvedSession]) -> int:
                 "pos": session.positive_feedback_count,
                 "neg": session.negative_feedback_count,
                 "aband": session.is_abandoned,
+                "auth": session.is_authenticated,
             })
 
             # 7. Sync tags → fact_tag_assignments

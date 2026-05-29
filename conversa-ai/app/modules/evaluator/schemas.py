@@ -53,6 +53,7 @@ class ExtractedSession(BaseModel):
     positive_feedback_count: int = 0
     negative_feedback_count: int = 0
     star_rating: Optional[int] = None
+    is_authenticated: bool = False
 
 
 # Etapa 2: Transform (Clean)

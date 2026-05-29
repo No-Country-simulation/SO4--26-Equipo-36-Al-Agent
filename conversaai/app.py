@@ -25,9 +25,9 @@ from layout import load_global_css, render_sidebar, render_topbar
 
 # ── HELPER: Fetch data from API ───────────────────────────────────────────
 @st.cache_data(ttl=20)
-def fetch_overview() -> dict:
+def fetch_overview(user_filter: str = "all") -> dict:
     try:
-        resp = requests.get(f"{API_BASE}/overview", timeout=10)
+        resp = requests.get(f"{API_BASE}/overview?user_filter={user_filter}", timeout=10)
         resp.raise_for_status()
         return resp.json()
     except Exception:
@@ -46,11 +46,25 @@ if "has_notifications" not in st.session_state:
 today = datetime.now().strftime("%d/%m/%Y")
 render_topbar(subtitle="Panel de análisis", has_notifications=st.session_state.has_notifications)
 
+# ── FILTROS GLOBALES ───────────────────────────────────────────────────────
+st.markdown("""
+<style>
+/* Alinear el radio button del dashboard con el padding de 40px de la clase .px */
+div[data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div:has([data-testid="stRadio"]) {
+    padding: 0 40px !important;
+}
+</style>
+<br/>
+""", unsafe_allow_html=True)
+user_filter_options = {"Todos": "all", "Solo Clientes": "auth", "Solo Anónimos": "anon"}
+selected_user_filter = st.radio("Filtro de Usuarios:", options=list(user_filter_options.keys()), horizontal=True)
+current_user_filter = user_filter_options[selected_user_filter]
+
 # ── POLLING & ESTADO DE NOTIFICACIONES ─────────────────────────────────────
 st_autorefresh(interval=10000, key="dash_refresh")
 
 # ── FETCH DATA ─────────────────────────────────────────────────────────────
-data = fetch_overview()
+data = fetch_overview(user_filter=current_user_filter)
 
 if data:
     current_count = data.get("kpis", {}).get("total_sessions", 0)
