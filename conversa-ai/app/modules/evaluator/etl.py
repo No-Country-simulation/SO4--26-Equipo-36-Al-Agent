@@ -175,6 +175,16 @@ async def _extract(db: AsyncSession) -> list[ExtractedSession]:
             for m in msgs_result.fetchall()
         ]
 
+        # Si la sesión no tiene mensajes, no la enviamos al warehouse.
+        # La marcamos como evaluada para que el ETL no la vuelva a agarrar.
+        if not messages:
+            await db.execute(
+                text("UPDATE agent_core.sessions SET status_id = 4 WHERE session_id = :sid"),
+                {"sid": sid}
+            )
+            await db.commit()
+            continue
+
         # Tags de la sesión
         tags_result = await db.execute(text("""
             SELECT ct.tag_name
