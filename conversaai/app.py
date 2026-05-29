@@ -37,8 +37,8 @@ def fetch_overview(user_filter: str = "all") -> dict:
 # ── SIDEBAR ────────────────────────────────────────────────────────────────
 render_sidebar(active_page="dashboard")
 
-if "dash_last_count" not in st.session_state:
-    st.session_state.dash_last_count = -1
+if "dash_last_count" not in st.session_state or not isinstance(st.session_state.dash_last_count, dict):
+    st.session_state.dash_last_count = {"all": -1, "auth": -1, "anon": -1}
 if "has_notifications" not in st.session_state:
     st.session_state.has_notifications = False
 
@@ -68,10 +68,11 @@ data = fetch_overview(user_filter=current_user_filter)
 
 if data:
     current_count = data.get("kpis", {}).get("total_sessions", 0)
-    if st.session_state.dash_last_count != -1 and current_count > st.session_state.dash_last_count:
+    last_count = st.session_state.dash_last_count.get(current_user_filter, -1)
+    if last_count != -1 and current_count > last_count:
         st.toast("¡Nuevo ticket clasificado!", icon="🔔")
         st.session_state.has_notifications = True
-    st.session_state.dash_last_count = current_count
+    st.session_state.dash_last_count[current_user_filter] = current_count
 
 if not data:
     st.markdown('<div class="px"><div class="no-data">⚠ No se pudo conectar con la API.</div></div>', unsafe_allow_html=True)
