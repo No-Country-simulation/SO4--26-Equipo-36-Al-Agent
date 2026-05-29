@@ -42,6 +42,9 @@ if "dash_last_count" not in st.session_state or not isinstance(st.session_state.
 if "has_notifications" not in st.session_state:
     st.session_state.has_notifications = False
 
+# TOPBAR PLACEHOLDER (Para que se renderice arriba de los filtros)
+topbar_container = st.empty()
+
 # FILTROS GLOBALES 
 st.markdown("""
 <style>
@@ -64,9 +67,10 @@ data = fetch_overview(user_filter=current_user_filter)
 
 unread_count = data.get("kpis", {}).get("unread_count", 0) if data else 0
 
-# TOPBAR (Debe renderizarse ANTES de st_autorefresh para no heredar espacios fantasmas, pero necesitamos la data)
+# RENDER TOPBAR
 today = datetime.now().strftime("%d/%m/%Y")
-render_topbar(subtitle="Panel de análisis", has_notifications=(unread_count > 0))
+with topbar_container:
+    render_topbar(subtitle="Panel de análisis", has_notifications=(unread_count > 0))
 
 if data:
     current_count = data.get("kpis", {}).get("total_sessions", 0)
