@@ -34,7 +34,7 @@ def fetch_overview(user_filter: str = "all") -> dict:
         return None
 
 
-# ── SIDEBAR ────────────────────────────────────────────────────────────────
+# SIDEBAR 
 render_sidebar(active_page="dashboard")
 
 if "dash_last_count" not in st.session_state or not isinstance(st.session_state.dash_last_count, dict):
@@ -42,11 +42,11 @@ if "dash_last_count" not in st.session_state or not isinstance(st.session_state.
 if "has_notifications" not in st.session_state:
     st.session_state.has_notifications = False
 
-# ── TOPBAR (Debe renderizarse ANTES de st_autorefresh para no heredar espacios fantasmas) ──
+# TOPBAR (Debe renderizarse ANTES de st_autorefresh para no heredar espacios fantasmas) 
 today = datetime.now().strftime("%d/%m/%Y")
 render_topbar(subtitle="Panel de análisis", has_notifications=st.session_state.has_notifications)
 
-# ── FILTROS GLOBALES ───────────────────────────────────────────────────────
+# FILTROS GLOBALES 
 st.markdown("""
 <style>
 /* Alinear el radio button del dashboard con el padding de 40px de la clase .px */
@@ -60,10 +60,10 @@ user_filter_options = {"Todos": "all", "Solo Clientes": "auth", "Solo Anónimos"
 selected_user_filter = st.radio("Filtro de Usuarios:", options=list(user_filter_options.keys()), horizontal=True)
 current_user_filter = user_filter_options[selected_user_filter]
 
-# ── POLLING & ESTADO DE NOTIFICACIONES ─────────────────────────────────────
+# POLLING & ESTADO DE NOTIFICACIONES 
 st_autorefresh(interval=10000, key="dash_refresh")
 
-# ── FETCH DATA ─────────────────────────────────────────────────────────────
+# FETCH DATA 
 data = fetch_overview(user_filter=current_user_filter)
 
 if data:
@@ -80,7 +80,7 @@ if not data:
 
 kpis = data["kpis"]
 
-# ── KPI CARDS ──────────────────────────────────────────────────────────────
+# KPI CARDS 
 abandon_cls = "c-red" if kpis["abandon_rate"] > 25 else "c-amber"
 frust_cls = "c-red" if kpis["frustration_rate"] > 20 else "c-amber"
 
@@ -147,7 +147,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 
-# ── CHARTS ROW ─────────────────────────────────────────────────────────────
+# CHARTS ROW 
 # Usamos columnas de Streamlit. Gracias al CSS, el contenedor de Plotly será una tarjeta blanca.
 col_bar, col_donut = st.columns([2.5, 1], gap="small")
 
@@ -194,7 +194,7 @@ with col_donut:
     st.plotly_chart(fig_donut, use_container_width=True, config={"displayModeBar": False})
 
 
-# ── TOP INTENCIONES NO RESUELTAS ───────────────────────────────────────────
+# TOP INTENCIONES NO RESUELTAS 
 intents = data.get("top_unresolved_intents", [])
 intent_colors = ["#E97358", "#F4A261", "#9BA9FF", "#1D9E75", "#D0ED57"]
 
