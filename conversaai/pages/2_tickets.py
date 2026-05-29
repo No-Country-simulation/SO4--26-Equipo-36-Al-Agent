@@ -241,15 +241,18 @@ else:
             score = an.get("sentiment_score", 0)
             slope = "Estable" if -0.3 < score < 0.3 else ("Descendente 📉" if score <= -0.3 else "Ascendente 📈")
 
+            dur_sec = an.get('duration_seconds', 0)
+            dur_text = f"{int(dur_sec/60)} minutos" if dur_sec >= 60 else f"{int(dur_sec)} segundos"
+
             datos = [
                 ("Clasificación", an.get("resolution", "Desconocido").capitalize()),
+                ("Intención", an.get("intent", "Desconocida").replace("_", " ").title()),
                 ("Sentimiento", f"{an.get('sentiment_group', 'Neutral')} ({score})"),
                 ("Pendiente emocional", slope),
                 ("Tags", tags_html),
                 ("Idioma", an.get("language_name", "Español")),
-                ("Último nodo", "No_match"),
                 ("Mensajes totales", f"{an.get('total_messages', 0)} mensajes"),
-                ("Duración", f"{int(an.get('duration_seconds', 0)/60)} minutos"),
+                ("Duración", dur_text),
                 ("Feedback final", stars_text)
             ]
             

@@ -328,21 +328,23 @@ async def ticket_detail(
 
     # Chat desde agent_core (para auditoría)
     messages_result = await db.execute(text("""
-        SELECT m.message_id, cr.role_name, m.content, m.created_at
+        SELECT m.message_id, cr.role_name, m.content, m.created_at, f.rating
         FROM agent_core.messages m
         JOIN agent_core.cat_roles cr ON m.role_id = cr.role_id
+        LEFT JOIN agent_core.feedback f ON m.message_id = f.message_id
         WHERE m.session_id = :sid
         ORDER BY m.created_at
     """), {"sid": session_id})
-    messages = [
-        {
+    messages = []
+    for m in messages_result.fetchall():
+        fb = "positive" if m.rating == 1 else ("negative" if m.rating == -1 else None)
+        messages.append({
             "id": str(m.message_id),
             "role": m.role_name,
             "content": m.content,
             "time": m.created_at.strftime("%H:%M") if m.created_at else "",
-        }
-        for m in messages_result.fetchall()
-    ]
+            "feedback": fb
+        })
 
     return {
         "session_id": session_id,
